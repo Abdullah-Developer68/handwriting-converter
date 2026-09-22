@@ -9,7 +9,8 @@ import {
   Eye, 
   Edit3, 
   FileDown,
-  Palette
+  Palette,
+  Trash2
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -17,14 +18,17 @@ interface HeaderProps {
   onSaveFile: () => void;
   onOpenTemplates: () => void;
   onOpenImport: () => void;
+  onDeletePageClick?: () => void;
   onExportPdf: () => void;
   onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
   viewMode: 'split' | 'preview' | 'editor';
-  setViewMode: (mode: 'split' | 'preview' | 'editor') => void;
+  setViewMode?: (mode: 'split' | 'preview' | 'editor') => void;
+  onViewModeChange?: (mode: 'split' | 'preview' | 'editor') => void;
   pageCount: number;
   wordCount: number;
   currentFileName: string;
+  currentFilePath?: string | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,15 +36,19 @@ export const Header: React.FC<HeaderProps> = ({
   onSaveFile,
   onOpenTemplates,
   onOpenImport,
+  onDeletePageClick,
   onExportPdf,
   onToggleSidebar,
   isSidebarOpen = true,
   viewMode,
   setViewMode,
+  onViewModeChange,
   pageCount,
   wordCount,
   currentFileName,
 }) => {
+  const changeViewMode = onViewModeChange || setViewMode || (() => {});
+
   return (
     <header className="app-header no-print">
       {/* Brand & File info */}
@@ -77,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="view-mode-container">
         <button
           className={`btn btn-sm ${viewMode === 'editor' ? 'btn-secondary' : 'btn-ghost'}`}
-          onClick={() => setViewMode('editor')}
+          onClick={() => changeViewMode('editor')}
           title="Editor only"
         >
           <Edit3 size={14} />
@@ -85,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
         <button
           className={`btn btn-sm ${viewMode === 'split' ? 'btn-secondary' : 'btn-ghost'}`}
-          onClick={() => setViewMode('split')}
+          onClick={() => changeViewMode('split')}
           title="Split view (Editor + Handwritten Preview)"
         >
           <Columns size={14} />
@@ -93,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
         <button
           className={`btn btn-sm ${viewMode === 'preview' ? 'btn-secondary' : 'btn-ghost'}`}
-          onClick={() => setViewMode('preview')}
+          onClick={() => changeViewMode('preview')}
           title="Preview only"
         >
           <Eye size={14} />
@@ -123,14 +131,28 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="header-btn-label">Templates</span>
         </button>
 
+        {/* Change Import to Insert Pages */}
         <button 
           className="btn btn-secondary btn-sm"
           onClick={onOpenImport}
-          title="Import pages from PDF, Word, or Google Docs (.docx)"
+          title="Insert pages from PDF or Word (.docx) into your content"
         >
           <FileDown size={14} color="#38bdf8" />
-          <span className="header-btn-label">Import</span>
+          <span className="header-btn-label">Insert Pages</span>
         </button>
+
+        {/* Option to Delete Page from Content */}
+        {onDeletePageClick && pageCount > 0 && (
+          <button 
+            className="btn btn-ghost btn-sm"
+            onClick={onDeletePageClick}
+            title="Delete a page from your content"
+            style={{ color: '#f87171' }}
+          >
+            <Trash2 size={14} />
+            <span className="header-btn-label">Delete Page</span>
+          </button>
+        )}
 
         <button 
           className="btn btn-secondary btn-sm"

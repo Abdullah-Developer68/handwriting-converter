@@ -2,8 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ParsedDocument, InsertionConfig, InsertionTarget } from '../types';
 import { 
   FileUp, 
-  FileDown,
-  FileText, 
+  FileDown, 
   CheckSquare, 
   Square, 
   Search, 
@@ -16,7 +15,8 @@ import {
   ArrowUpToLine,
   ArrowDownToLine,
   Layers,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 
 interface ImportModalProps {
@@ -119,48 +119,51 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     }
   };
 
-  // Trigger Native OS file picker
-  const handlePickFile = async () => {
-    if (window.electronAPI?.importDocument) {
-      setIsLoading(true);
-      setErrorMessage(null);
-      try {
-        const parsed = await window.electronAPI.importDocument();
-        if (parsed) {
-          setDocumentData(parsed);
-          const allNums = parsed.pages.map((p) => p.pageNumber);
-          setSelectedPageNumbers(allNums);
-          setActivePreviewPageNum(allNums[0] || null);
-          if (parsed.pages[0]?.imageUrl) {
-            setPreviewMode('visual');
-            setImportFormat('visual');
-          } else {
-            setPreviewMode('text');
-            setImportFormat('handwritten');
-          }
+  const handleNativeOpenDialog = async () => {
+    if (!window.electronAPI?.openDocumentDialog) {
+      handlePickFile();
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const parsed = await window.electronAPI.openDocumentDialog();
+      if (parsed) {
+        setDocumentData(parsed);
+        const allNums = parsed.pages.map((p) => p.pageNumber);
+        setSelectedPageNumbers(allNums);
+        setActivePreviewPageNum(allNums[0] || null);
+        if (parsed.pages[0]?.imageUrl) {
+          setPreviewMode('visual');
+          setImportFormat('visual');
+        } else {
+          setPreviewMode('text');
+          setImportFormat('handwritten');
         }
-      } catch (err: any) {
-        console.error('Failed to import document:', err);
-        setErrorMessage(err.message || 'Failed to open file');
-      } finally {
-        setIsLoading(false);
       }
-    } else {
-      // Browser fallback file input
-      const input = window.document.createElement('input');
-      input.type = 'file';
-      input.accept = '.pdf,.docx,.doc,.md,.markdown,.txt';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          handleProcessFile(file);
-        }
-      };
-      input.click();
+    } catch (err: any) {
+      console.error('Failed to open document dialog:', err);
+      setErrorMessage(err.message || 'Failed to open document');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Drag and drop handlers for modal dropzone
+  const handlePickFile = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.docx,.doc,.txt,.md';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        handleProcessFile(file);
+      }
+    };
+    input.click();
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -184,62 +187,81 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     }
   };
 
-  // Toggle single page selection
+  // Toggle Selection
   const togglePageSelection = (pageNum: number) => {
-    setSelectedPageNumbers((prev) =>
-      prev.includes(pageNum) ? prev.filter((n) => n !== pageNum) : [...prev, pageNum].sort((a, b) => a - b)
-    );
+    setSelectedPageNumbers((prev) => {
+      if (prev.includes(pageNum)) {
+        return prev.filter((p) => p !== pageNum);
+      } else {
+        return [...prev, pageNum].sort((a, b) => a - b);
+      }
+    });
   };
 
-  // Select all / deselect all
   const selectAllPages = () => {
-    if (!documentData) return;
-    setSelectedPageNumbers(documentData.pages.map((p) => p.pageNumber));
+    if (documentData) {
+      setSelectedPageNumbers(documentData.pages.map((p) => p.pageNumber));
+    }
   };
 
   const deselectAllPages = () => {
     setSelectedPageNumbers([]);
   };
 
-  // Filtered pages
+  // Delete page directly from imported document before inserting
+  const handleDeletePageFromImport = (pageNumberToDelete: number) => {
+    if (!documentData) return;
+    const updatedPages = documentData.pages.filter((p) => p.pageNumber !== pageNumberToDelete);
+    setDocumentData({
+      ...documentData,
+      totalPages: updatedPages.length,
+      pages: updatedPages,
+    });
+    setSelectedPageNumbers((prev) => prev.filter((n) => n !== pageNumberToDelete));
+    if (activePreviewPageNum === pageNumberToDelete) {
+      setActivePreviewPageNum(updatedPages[0]?.pageNumber || null);
+    }
+  };
+
+  // Filtered pages based on search query
   const filteredPages = useMemo(() => {
     if (!documentData) return [];
     if (!searchQuery.trim()) return documentData.pages;
-    const query = searchQuery.toLowerCase();
-    return documentData.pages.filter(
-      (p) =>
-        p.text.toLowerCase().includes(query) ||
-        `page ${p.pageNumber}`.toLowerCase().includes(query)
+
+    const q = searchQuery.toLowerCase();
+    return documentData.pages.filter((p) =>
+      p.text.toLowerCase().includes(q) ||
+      p.pageNumber.toString().includes(q) ||
+      (p.preview && p.preview.toLowerCase().includes(q))
     );
   }, [documentData, searchQuery]);
 
-  // Active page object
+  // Active page object being previewed
   const activePage = useMemo(() => {
-    if (!documentData || activePreviewPageNum === null) return null;
+    if (!documentData) return null;
+    if (activePreviewPageNum === null) return documentData.pages[0] || null;
     return documentData.pages.find((p) => p.pageNumber === activePreviewPageNum) || null;
   }, [documentData, activePreviewPageNum]);
 
-  // Execute insert
+  // Submit and Insert
   const handleExecuteInsert = () => {
     if (!documentData || selectedPageNumbers.length === 0) return;
 
-    // Filter and combine selected pages in numerical order
+    // Filter pages in original order
     const pagesToInsert = documentData.pages
       .filter((p) => selectedPageNumbers.includes(p.pageNumber))
-      .sort((a, b) => a.pageNumber - b.pageNumber)
       .map((p) => ({
         text: p.text,
         imageUrl: p.imageUrl,
       }));
 
-    const config: InsertionConfig = {
+    onInsert(pagesToInsert, {
       target: insertionTarget,
-      pageNumber: Math.max(1, Math.min(totalNotePages || 1, targetPageNumber)),
+      pageNumber: targetPageNumber,
       position: pagePosition,
       importFormat: importFormat,
-    };
+    });
 
-    onInsert(pagesToInsert, config);
     onClose();
   };
 
@@ -265,10 +287,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             </div>
             <div>
               <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#f4f4f5', margin: 0 }}>
-                Import Pages from Document
+                Insert Pages from Document
               </h2>
               <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
-                Extract pages from PDF, Word, Google Docs (.docx) & insert anywhere
+                Merge pages from PDF or DOCX into your notes. Inserted PDF pages keep their original styles.
               </div>
             </div>
           </div>
@@ -277,7 +299,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Body - Smooth vertical scrolling without element collision */}
+        {/* Modal Body */}
         <div className="modal-body">
           {/* Error Message */}
           {errorMessage && (
@@ -320,25 +342,25 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              onClick={handlePickFile}
               style={{
                 border: `2px dashed ${isDragging ? '#6366f1' : '#3f3f46'}`,
-                backgroundColor: isDragging ? 'rgba(99, 102, 241, 0.08)' : '#18181b',
                 borderRadius: '12px',
-                padding: '36px 20px',
+                padding: '48px 24px',
+                textAlign: 'center',
+                backgroundColor: isDragging ? 'rgba(99, 102, 241, 0.08)' : '#18181b',
+                transition: 'all 0.2s ease',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
                 gap: '14px',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
               }}
+              onClick={handleNativeOpenDialog}
             >
               <div style={{
                 width: '56px',
                 height: '56px',
-                borderRadius: '50%',
+                borderRadius: '14px',
                 backgroundColor: '#27272a',
                 display: 'flex',
                 alignItems: 'center',
@@ -347,54 +369,68 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               }}>
                 <FileUp size={28} />
               </div>
-
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#f4f4f5' }}>
-                  Choose a PDF or Word / Google Docs file
-                </div>
-                <div style={{ fontSize: '12px', color: '#71717a', marginTop: '4px' }}>
-                  Drag & drop or click to select from your computer
-                </div>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f4f4f5', margin: '0 0 4px 0' }}>
+                  Choose PDF or Word Document
+                </h3>
+                <p style={{ fontSize: '13px', color: '#a1a1aa', margin: 0 }}>
+                  Drag & drop your file here, or click to browse files
+                </p>
               </div>
 
-              {/* Supported Badges */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', backgroundColor: '#27272a', color: '#ef4444' }}>
-                  PDF (.pdf)
-                </span>
-                <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', backgroundColor: '#27272a', color: '#3b82f6' }}>
-                  Word & Google Docs (.docx)
-                </span>
-                <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', backgroundColor: '#27272a', color: '#10b981' }}>
-                  Markdown (.md)
-                </span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginTop: '6px',
+                fontSize: '11px',
+                color: '#71717a',
+              }}>
+                <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#27272a' }}>PDF</span>
+                <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#27272a' }}>DOCX</span>
+                <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#27272a' }}>Google Docs</span>
+                <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#27272a' }}>TXT / MD</span>
               </div>
             </div>
           )}
 
-          {/* State 2: Document Loaded */}
+          {/* State 2: Document Loaded -> Preview & Insertion Flow */}
           {!isLoading && documentData && (
             <>
-              {/* Top Overview Bar */}
+              {/* Active Document Header info */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '9px 12px',
-                backgroundColor: '#202024',
+                padding: '10px 14px',
                 borderRadius: '8px',
+                backgroundColor: '#18181b',
                 border: '1px solid #27272a',
-                gap: '10px',
                 flexShrink: 0,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                  <FileText size={18} color={documentData.type === 'pdf' ? '#ef4444' : '#3b82f6'} style={{ flexShrink: 0 }} />
+                  <div style={{
+                    padding: '6px',
+                    borderRadius: '6px',
+                    backgroundColor: documentData.type === 'pdf' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                    color: documentData.type === 'pdf' ? '#ef4444' : '#3b82f6',
+                    flexShrink: 0,
+                  }}>
+                    <FileDown size={18} />
+                  </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#f4f4f5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#f4f4f5',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
                       {documentData.filename}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#71717a' }}>
-                      {documentData.type.toUpperCase()} • {documentData.totalPages} {documentData.totalPages === 1 ? 'page' : 'pages'}
+                    <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
+                      {documentData.totalPages} {documentData.totalPages === 1 ? 'page' : 'pages'} found • {selectedPageNumbers.length} selected for merge
                     </div>
                   </div>
                 </div>
@@ -460,6 +496,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                           width: '90px',
                         }}
                       />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: 0 }}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -521,7 +565,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                               </span>
                               {page.imageUrl && (
                                 <span style={{ fontSize: '9px', padding: '1px 4px', borderRadius: '3px', backgroundColor: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' }}>
-                                  Visual Page
+                                  PDF Page
                                 </span>
                               )}
                             </div>
@@ -535,13 +579,35 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                               {page.preview || '(Empty page)'}
                             </div>
                           </div>
+
+                          {/* Option to Delete Page directly from imported PDF */}
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePageFromImport(page.pageNumber);
+                            }}
+                            style={{
+                              padding: '3px 6px',
+                              color: '#71717a',
+                              height: '24px',
+                              flexShrink: 0,
+                              marginLeft: 'auto',
+                            }}
+                            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#f87171')}
+                            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#71717a')}
+                            title={`Delete Page ${page.pageNumber} from this PDF`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       );
                     })}
 
                     {filteredPages.length === 0 && (
                       <div style={{ textAlign: 'center', padding: '20px', color: '#71717a', fontSize: '12px' }}>
-                        No pages match your filter
+                        No pages in this document
                       </div>
                     )}
                   </div>
@@ -574,7 +640,21 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       height: '32px',
                       boxSizing: 'border-box',
                     }}>
-                      <span>Page {activePreviewPageNum || 1} Preview</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Page {activePreviewPageNum || 1} Preview</span>
+                        {activePreviewPageNum && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleDeletePageFromImport(activePreviewPageNum)}
+                            style={{ padding: '1px 5px', height: '20px', fontSize: '10px', color: '#f87171' }}
+                            title={`Delete Page ${activePreviewPageNum} from import`}
+                          >
+                            <Trash2 size={11} style={{ marginRight: '3px' }} />
+                            <span>Delete Page</span>
+                          </button>
+                        )}
+                      </div>
 
                       {/* Visual vs Text Switcher */}
                       {activePage?.imageUrl && (
@@ -583,10 +663,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                             className={`btn btn-sm ${previewMode === 'visual' ? 'btn-secondary' : 'btn-ghost'}`}
                             onClick={() => setPreviewMode('visual')}
                             style={{ padding: '1px 6px', fontSize: '10px' }}
-                            title="View full visual page screenshot (with logos, colors, and layout)"
+                            title="View original visual page layout"
                           >
                             <ImageIcon size={11} style={{ marginRight: '3px' }} />
-                            Visual Page
+                            Original Layout
                           </button>
                           <button
                             className={`btn btn-sm ${previewMode === 'text' ? 'btn-secondary' : 'btn-ghost'}`}
@@ -601,7 +681,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       )}
                     </div>
 
-                    {/* Preview Content Area - image scales proportionally without overflowing */}
+                    {/* Preview Content Area */}
                     <div style={{
                       padding: '8px',
                       flex: 1,
@@ -664,23 +744,27 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   }}>
                     <div>
                       <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
-                        Import Formatting Style:
+                        Page Styling:
                       </div>
                       <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
-                        Choose how to render imported page(s)
+                        {importFormat === 'visual'
+                          ? "Original PDF styles and layout are preserved (notebook styles won't be applied)"
+                          : "Convert text to handwritten notes on notebook paper"}
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
+                        type="button"
                         className={`btn btn-sm ${importFormat === 'visual' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setImportFormat('visual')}
                         style={{ fontSize: '12px' }}
                       >
                         <ImageIcon size={13} />
-                        <span>Preserve Visual Page (Logos & Layout)</span>
+                        <span>Preserve Original Styles & Layout</span>
                       </button>
                       <button
+                        type="button"
                         className={`btn btn-sm ${importFormat === 'handwritten' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => setImportFormat('handwritten')}
                         style={{ fontSize: '12px' }}
@@ -695,7 +779,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 {/* 2. Where to Insert Content */}
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#e4e4e7', display: 'block', marginBottom: '8px' }}>
-                    Where to Insert Content:
+                    Where to Merge Pages:
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
                     {/* Option 1: At Start */}
@@ -725,7 +809,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                           <span>At Start</span>
                         </div>
                         <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                          Beginning (Page 1)
+                          Beginning of document
                         </div>
                       </div>
                     </label>
@@ -789,43 +873,46 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                           <span>At End</span>
                         </div>
                         <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                          After last page
+                          Append to end of note
                         </div>
                       </div>
                     </label>
 
                     {/* Option 4: At Cursor */}
-                    <label
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        backgroundColor: insertionTarget === 'cursor' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
-                        border: `1.5px solid ${insertionTarget === 'cursor' ? '#6366f1' : '#27272a'}`,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="insertionTarget"
-                        value="cursor"
-                        checked={insertionTarget === 'cursor'}
-                        onChange={() => setInsertionTarget('cursor')}
-                        style={{ marginTop: '2px' }}
-                      />
-                      <div>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
-                          📍 At Cursor
+                    {hasCursorPosition && (
+                      <label
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          backgroundColor: insertionTarget === 'cursor' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                          border: `1.5px solid ${insertionTarget === 'cursor' ? '#6366f1' : '#27272a'}`,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="insertionTarget"
+                          value="cursor"
+                          checked={insertionTarget === 'cursor'}
+                          onChange={() => setInsertionTarget('cursor')}
+                          style={{ marginTop: '2px' }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Type size={13} color="#4ade80" />
+                            <span>At Cursor</span>
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                            Insert at caret position
+                          </div>
                         </div>
-                        <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                          At editor cursor
-                        </div>
-                      </div>
-                    </label>
+                      </label>
+                    )}
 
-                    {/* Option 5: Replace Note */}
+                    {/* Option 5: Replace Document */}
                     <label
                       style={{
                         display: 'flex',
@@ -879,6 +966,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       {/* Before / After Button Group */}
                       <div style={{ display: 'flex', backgroundColor: '#18181b', borderRadius: '6px', padding: '2px', border: '1px solid #27272a' }}>
                         <button
+                          type="button"
                           className={`btn btn-sm ${pagePosition === 'before' ? 'btn-secondary' : 'btn-ghost'}`}
                           onClick={() => setPagePosition('before')}
                           style={{ padding: '2px 8px', fontSize: '11px' }}
@@ -886,6 +974,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                           Before
                         </button>
                         <button
+                          type="button"
                           className={`btn btn-sm ${pagePosition === 'after' ? 'btn-secondary' : 'btn-ghost'}`}
                           onClick={() => setPagePosition('after')}
                           style={{ padding: '2px 8px', fontSize: '11px' }}

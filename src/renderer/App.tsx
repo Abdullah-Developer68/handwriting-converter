@@ -7,113 +7,107 @@ import { TemplatesModal } from './components/TemplatesModal';
 import { ExportModal } from './components/ExportModal';
 import { ImportModal } from './components/ImportModal';
 import { HandwritingSettings, SampleTemplate, InsertionConfig } from './types';
-import { DEFAULT_SETTINGS } from './utils/paperStyles';
-import { SAMPLE_TEMPLATES } from './utils/defaultTemplates';
 import { splitMarkdownIntoPages } from './utils/markdownParser';
 
+const DEFAULT_SETTINGS: HandwritingSettings = {
+  font: 'Caveat',
+  fontSize: 20,
+  lineHeight: 32,
+  letterSpacing: 0.5,
+  wordSpacing: 1.5,
+  inkColor: '#1e3a8a',
+  paperType: 'ruled',
+  paperColor: '#fdfbf7',
+  pageSize: 'A4',
+  orientation: 'portrait',
+  penThickness: 'regular',
+  jitter: 'subtle',
+  slant: -0.5,
+  baselineOffset: 0,
+  showMarginLine: true,
+  marginLineWidth: 70,
+  showHoles: true,
+  showHeader: true,
+  headerDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  headerSubject: 'Computer Networks - Lab 01',
+  showPageNumbers: true,
+  pageNumberStyle: 'x-of-y',
+};
+
+const DEFAULT_MARKDOWN = `# Computer Networks Lab Report
+## Experiment 1: Packet Sniffing & Analysis
+
+In this experiment, we utilized **Wireshark** to capture and analyze live network packets traversing the local network interface.
+
+### Key Objectives:
+- Capture and inspect TCP 3-way handshake (SYN, SYN-ACK, ACK)
+- Examine DNS query and response resolution delays
+- Verify payload integrity and checksum validation
+
+> **Observation:** Packet delivery latency stayed consistently under 12ms during localized echo requests.
+
+### Captured Protocol Summary:
+| Protocol | Packet Count | Percentage |
+| :--- | :--- | :--- |
+| TCP | 1,420 | 68.4% |
+| UDP | 450 | 21.7% |
+| ICMP | 110 | 5.3% |
+| Other | 95 | 4.6% |
+
+- [x] Initial interface promiscuous mode enabled
+- [x] Captured baseline ICMP echo traffic
+- [ ] Document final throughput benchmarks
+
+==Note: Ensure all MAC addresses are anonymized before submitting the final laboratory report.==
+`;
+
 export const App: React.FC = () => {
-  // Start with the first curated sample note
-  const [markdown, setMarkdown] = useState<string>(() => {
-    const saved = localStorage.getItem('scribecraft_markdown');
-    return saved !== null ? saved : SAMPLE_TEMPLATES[0].markdown;
-  });
-
-  const [currentFileName, setCurrentFileName] = useState<string>('physics-notes.md');
+  const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
+  const [settings, setSettings] = useState<HandwritingSettings>(DEFAULT_SETTINGS);
+  const [currentFileName, setCurrentFileName] = useState<string>('notes.md');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
-
-  const [settings, setSettings] = useState<HandwritingSettings>(() => {
-    try {
-      const saved = localStorage.getItem('scribecraft_settings');
-      if (saved) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-      }
-    } catch (e) {
-      console.warn('Failed to parse saved settings', e);
-    }
-    return DEFAULT_SETTINGS;
-  });
-
-  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => window.innerWidth > 960);
+  const [viewMode, setViewMode] = useState<'split' | 'preview' | 'editor'>('split');
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  
+  // Import modal state
   const [isImportOpen, setIsImportOpen] = useState<boolean>(false);
   const [droppedImportFile, setDroppedImportFile] = useState<File | null>(null);
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
-  // Sync markdown to localStorage
-  useEffect(() => {
-    localStorage.setItem('scribecraft_markdown', markdown);
-  }, [markdown]);
-
-  // Sync settings to localStorage
-  useEffect(() => {
-    localStorage.setItem('scribecraft_settings', JSON.stringify(settings));
-  }, [settings]);
-
-  // Derive pages based on explicit page breaks and line capacity
+  // Compute pages based on settings and manual pagebreaks
   const pages = useMemo(() => {
+    // Check for explicit manual pagebreaks first
+    const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
+    if (explicitBreakRegex.test(markdown)) {
+      return markdown.split(explicitBreakRegex).map((p) => p.trim()).filter(Boolean);
+    }
+
+    // Otherwise split logically based on line height and paper height
     const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
     return splitMarkdownIntoPages(markdown, maxLines);
   }, [markdown, settings.lineHeight]);
 
-  // File Open Handler
+  // Handle open file
   const handleOpenFile = async () => {
-    if (window.electronAPI) {
-      try {
-        const fileData = await window.electronAPI.openFile();
-        if (fileData) {
-          setMarkdown(fileData.content);
-          setCurrentFileName(fileData.filename);
-          setCurrentFilePath(fileData.path);
-        }
-      } catch (err) {
-        console.error('Failed to open file:', err);
-      }
-    } else {
-      // Browser fallback file picker
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.md,.markdown,.txt';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (re) => {
-            const content = re.target?.result as string;
-            setMarkdown(content || '');
-            setCurrentFileName(file.name);
-            setCurrentFilePath(null);
-          };
-          reader.readAsText(file);
-        }
-      };
-      input.click();
+    if (!window.electronAPI) return;
+    const file = await window.electronAPI.openFile();
+    if (file) {
+      setMarkdown(file.content);
+      setCurrentFileName(file.name);
+      setCurrentFilePath(file.path);
     }
   };
 
-  // File Save Handler
+  // Handle save file
   const handleSaveFile = async () => {
-    if (window.electronAPI) {
-      try {
-        const result = await window.electronAPI.saveFile(markdown, currentFileName);
-        if (result.success && result.path) {
-          setCurrentFilePath(result.path);
-          const name = result.path.split(/[\\/]/).pop() || currentFileName;
-          setCurrentFileName(name);
-        }
-      } catch (err) {
-        console.error('Failed to save file:', err);
-      }
-    } else {
-      // Browser download fallback
-      const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = currentFileName;
-      link.click();
-      URL.revokeObjectURL(url);
+    if (!window.electronAPI) return;
+    const savedPath = await window.electronAPI.saveFile(markdown, currentFilePath || undefined);
+    if (savedPath) {
+      setCurrentFilePath(savedPath);
+      const name = savedPath.split('/').pop() || savedPath.split('\\').pop() || 'notes.md';
+      setCurrentFileName(name);
     }
   };
 
@@ -214,6 +208,55 @@ export const App: React.FC = () => {
     });
   };
 
+  // Delete page from current content
+  const handleDeletePage = (pageIndexToDelete: number) => {
+    setMarkdown((prev) => {
+      const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
+      let existingPages = prev.split(explicitBreakRegex).map((s) => s.trim()).filter(Boolean);
+
+      // If no explicit breaks exist yet and document is long, partition using splitMarkdownIntoPages
+      if (existingPages.length <= 1) {
+        const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
+        const autoPages = splitMarkdownIntoPages(prev, maxLines).filter(Boolean);
+        if (autoPages.length > 1) {
+          existingPages = autoPages;
+        }
+      }
+
+      if (existingPages.length <= 1) {
+        return '';
+      }
+
+      if (pageIndexToDelete >= 0 && pageIndexToDelete < existingPages.length) {
+        existingPages.splice(pageIndexToDelete, 1);
+        return existingPages.join('\n\n<!-- pagebreak -->\n\n');
+      }
+
+      return prev;
+    });
+  };
+
+  // Header quick page deletion trigger
+  const handleDeletePageHeaderClick = () => {
+    if (pages.length <= 1) {
+      if (window.confirm('Delete the current page and clear its content?')) {
+        handleDeletePage(0);
+      }
+      return;
+    }
+
+    const input = window.prompt(`Enter page number to delete (1 to ${pages.length}):`, '1');
+    if (!input) return;
+    const pageNum = parseInt(input, 10);
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= pages.length) {
+      if (window.confirm(`Delete Page ${pageNum} from your content?`)) {
+        handleDeletePage(pageNum - 1);
+      }
+    } else {
+      alert(`Please enter a valid page number between 1 and ${pages.length}.`);
+    }
+  };
+
   // Select sample template
   const handleSelectTemplate = (template: SampleTemplate) => {
     setMarkdown(template.markdown);
@@ -259,6 +302,7 @@ export const App: React.FC = () => {
           setDroppedImportFile(null);
           setIsImportOpen(true);
         }}
+        onDeletePageClick={handleDeletePageHeaderClick}
         onExportPdf={() => setIsExportOpen(true)}
         onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
         isSidebarOpen={isSidebarOpen}
@@ -291,6 +335,7 @@ export const App: React.FC = () => {
           <PaperPreview
             pages={pages}
             settings={settings}
+            onDeletePage={handleDeletePage}
           />
         )}
 
@@ -319,7 +364,7 @@ export const App: React.FC = () => {
         pageCount={pages.length}
       />
 
-      {/* Import Pages from PDF, Word / Google Docs Modal */}
+      {/* Insert Pages from PDF, Word / Google Docs Modal */}
       <ImportModal
         isOpen={isImportOpen}
         onClose={() => {

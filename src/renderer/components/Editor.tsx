@@ -49,10 +49,10 @@ export const Editor: React.FC<EditorProps> = ({
 
     setTimeout(() => {
       textarea.focus();
-      const newPos = start + before.length + selectedText.length;
-      textarea.setSelectionRange(newPos, newPos);
-      onCursorChange?.(newPos);
-    }, 10);
+      const newCursor = start + before.length + selectedText.length;
+      textarea.setSelectionRange(newCursor, newCursor);
+      onCursorChange?.(newCursor);
+    }, 0);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -63,16 +63,21 @@ export const Editor: React.FC<EditorProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onDropFile(e.dataTransfer.files[0]);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      onDropFile(file);
     }
   };
 
   return (
-    <div className="editor-pane" onDragOver={handleDragOver} onDrop={handleDrop}>
-      {/* Editor Sub-toolbar */}
-      <div className="editor-header">
-        <div className="editor-toolbar-actions">
+    <div 
+      className="editor-pane"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Markdown Toolbar */}
+      <div className="toolbar-container no-print">
+        <div className="toolbar-group">
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('**', '**', 'bold text')}
@@ -159,14 +164,14 @@ export const Editor: React.FC<EditorProps> = ({
 
           <div className="toolbar-divider" />
 
-          {/* Import Pages Button */}
+          {/* Insert Pages Button */}
           <button
             className="btn btn-ghost btn-sm btn-import-toolbar"
             onClick={onOpenImport}
-            title="Import pages from PDF, Word / Google Docs (.docx)"
+            title="Insert pages from PDF or Word (.docx) into your content"
           >
             <FileDown size={13} />
-            <span className="editor-btn-label">Import</span>
+            <span className="editor-btn-label">Insert Pages</span>
           </button>
         </div>
 
