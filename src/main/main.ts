@@ -150,6 +150,11 @@ async function parseDocumentData(buffer: Buffer, filename: string): Promise<any>
 function runElectronApp() {
   const { app, BrowserWindow, ipcMain, dialog, shell } = electron;
 
+  // On Linux Wayland, disable Vulkan to prevent surface factory incompatibility warnings
+  if (process.platform === 'linux') {
+    app.commandLine.appendSwitch('disable-features', 'Vulkan');
+  }
+
   let mainWindow: any = null;
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
@@ -167,13 +172,57 @@ function runElectronApp() {
         contextIsolation: true,
         sandbox: false,
         webSecurity: true,
+        allowRunningInsecureContent: false,
       },
       titleBarStyle: 'default',
       show: false,
     });
 
-    // Forward renderer console logs to main process terminal for easier debugging
-    mainWindow.webContents.on('console-message', (_event: any, level: number, message: string, line: number, sourceId: string) => {
+    // Content Security Policy header configuration
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details: any, callback: any) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; worker-src 'self' blob:; connect-src 'self' http://localhost:* ws://localhost:*;",
+          ],
+        },
+      });
+    });
+
+    // Handle external links safely; prevent unexpected child window creation
+    mainWindow.webContents.setWindowOpenHandler(({ url }: { url: string }) => {
+      if (url.startsWith('https:') || url.startsWith('http:')) {
+        shell.openExternal(url);
+      }
+      return { action: 'deny' };
+    });
+
+    // Prevent renderer navigation away from the app
+    mainWindow.webContents.on('will-navigate', (event: any, navigationUrl: string) => {
+      const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+      if (isDev && devServerUrl) {
+        try {
+          const parsedNav = new URL(navigationUrl);
+          const parsedDev = new URL(devServerUrl);
+          if (parsedNav.origin === parsedDev.origin) return;
+        } catch {
+          // ignore parsing error
+        }
+      }
+      event.preventDefault();
+      if (navigationUrl.startsWith('https:') || navigationUrl.startsWith('http:')) {
+        shell.openExternal(navigationUrl);
+      }
+    });
+
+    // Forward renderer console logs cleanly without deprecation warnings
+    mainWindow.webContents.on('console-message', (event: any, ...legacyArgs: any[]) => {
+      // In newer Electron versions, event has the params; in older versions, arguments are passed separately
+      const message = typeof event?.message === 'string' ? event.message : legacyArgs[1] || '';
+      const level = typeof event?.level === 'number' ? event.level : legacyArgs[0] || 0;
+      const line = typeof event?.line === 'number' ? event.line : legacyArgs[2] || 0;
+      const sourceId = typeof event?.sourceId === 'string' ? event.sourceId : legacyArgs[3] || '';
       console.log(`[Renderer log ${level}]: ${message} (${sourceId}:${line})`);
     });
 
