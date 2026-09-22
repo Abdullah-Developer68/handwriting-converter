@@ -1,31 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ParsedDocument, InsertionTarget } from '../types';
+import { ParsedDocument, InsertionConfig, InsertionTarget } from '../types';
 import { 
   FileUp, 
   FileDown,
   FileText, 
-  File, 
   CheckSquare, 
   Square, 
   Search, 
   X, 
-  ArrowDownToLine, 
-  PlusSquare, 
-  FilePlus, 
-  RotateCcw, 
   Loader2, 
   AlertCircle,
-  HelpCircle,
   Eye,
-  Check
+  Check,
+  Image as ImageIcon,
+  Type,
+  ArrowUpToLine,
+  ArrowDownToLine,
+  Layers,
+  RotateCcw
 } from 'lucide-react';
 
 interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onInsert: (content: string, target: InsertionTarget) => void;
+  onInsert: (pages: { text: string; imageUrl?: string }[], config: InsertionConfig) => void;
   initialFile?: File | null;
   hasCursorPosition: boolean;
+  totalNotePages: number;
 }
 
 export const ImportModal: React.FC<ImportModalProps> = ({
@@ -34,17 +35,22 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   onInsert,
   initialFile,
   hasCursorPosition,
+  totalNotePages,
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [documentData, setDocumentData] = useState<ParsedDocument | null>(null);
   const [selectedPageNumbers, setSelectedPageNumbers] = useState<number[]>([]);
   const [activePreviewPageNum, setActivePreviewPageNum] = useState<number | null>(null);
+  const [previewMode, setPreviewMode] = useState<'visual' | 'text'>('visual');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [insertionTarget, setInsertionTarget] = useState<InsertionTarget>(
-    hasCursorPosition ? 'cursor' : 'new-page'
-  );
   const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  // Insertion Destination Options
+  const [insertionTarget, setInsertionTarget] = useState<InsertionTarget>('start');
+  const [targetPageNumber, setTargetPageNumber] = useState<number>(1);
+  const [pagePosition, setPagePosition] = useState<'before' | 'after'>('after');
+  const [importFormat, setImportFormat] = useState<'visual' | 'handwritten'>('visual');
 
   // Load initial file if provided via drag-and-drop
   useEffect(() => {
@@ -62,6 +68,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       setErrorMessage(null);
       setSearchQuery('');
       setIsLoading(false);
+      setPreviewMode('visual');
+      setInsertionTarget('start');
+      setTargetPageNumber(1);
+      setPagePosition('after');
+      setImportFormat('visual');
     }
   }, [isOpen]);
 
@@ -78,6 +89,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         const allNums = parsed.pages.map((p) => p.pageNumber);
         setSelectedPageNumbers(allNums);
         setActivePreviewPageNum(allNums[0] || null);
+        // If the first page has an imageUrl, default to visual preview & visual import format
+        if (parsed.pages[0]?.imageUrl) {
+          setPreviewMode('visual');
+          setImportFormat('visual');
+        } else {
+          setPreviewMode('text');
+          setImportFormat('handwritten');
+        }
       } else {
         // Web Fallback for text/md
         const text = await file.text();
@@ -91,6 +110,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         setDocumentData(parsed);
         setSelectedPageNumbers([1]);
         setActivePreviewPageNum(1);
+        setPreviewMode('text');
+        setImportFormat('handwritten');
       }
     } catch (err: any) {
       console.error('Failed to parse file:', err);
@@ -112,6 +133,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           const allNums = parsed.pages.map((p) => p.pageNumber);
           setSelectedPageNumbers(allNums);
           setActivePreviewPageNum(allNums[0] || null);
+          if (parsed.pages[0]?.imageUrl) {
+            setPreviewMode('visual');
+            setImportFormat('visual');
+          } else {
+            setPreviewMode('text');
+            setImportFormat('handwritten');
+          }
         }
       } catch (err: any) {
         console.error('Failed to import document:', err);
@@ -187,30 +215,33 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     );
   }, [documentData, searchQuery]);
 
-  // Content for active preview
-  const activePreviewText = useMemo(() => {
-    if (!documentData || activePreviewPageNum === null) return '';
-    const page = documentData.pages.find((p) => p.pageNumber === activePreviewPageNum);
-    return page ? page.text : '';
+  // Active page object
+  const activePage = useMemo(() => {
+    if (!documentData || activePreviewPageNum === null) return null;
+    return documentData.pages.find((p) => p.pageNumber === activePreviewPageNum) || null;
   }, [documentData, activePreviewPageNum]);
 
-  // Insert handler
+  // Execute insert
   const handleExecuteInsert = () => {
     if (!documentData || selectedPageNumbers.length === 0) return;
 
     // Filter and combine selected pages in numerical order
     const pagesToInsert = documentData.pages
       .filter((p) => selectedPageNumbers.includes(p.pageNumber))
-      .sort((a, b) => a.pageNumber - b.pageNumber);
+      .sort((a, b) => a.pageNumber - b.pageNumber)
+      .map((p) => ({
+        text: p.text,
+        imageUrl: p.imageUrl,
+      }));
 
-    let contentToInsert = '';
-    if (insertionTarget === 'new-page') {
-      contentToInsert = pagesToInsert.map((p) => p.text).join('\n\n<!-- pagebreak -->\n\n');
-    } else {
-      contentToInsert = pagesToInsert.map((p) => p.text).join('\n\n<!-- pagebreak -->\n\n');
-    }
+    const config: InsertionConfig = {
+      target: insertionTarget,
+      pageNumber: Math.max(1, Math.min(totalNotePages || 1, targetPageNumber)),
+      position: pagePosition,
+      importFormat: importFormat,
+    };
 
-    onInsert(contentToInsert, insertionTarget);
+    onInsert(pagesToInsert, config);
     onClose();
   };
 
@@ -218,10 +249,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-content"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -283,7 +311,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               color: '#a1a1aa',
             }}>
               <Loader2 size={32} className="animate-spin" color="#6366f1" />
-              <div style={{ fontSize: '13px', fontWeight: 500 }}>Parsing document pages...</div>
+              <div style={{ fontSize: '13px', fontWeight: 500 }}>Rendering document pages with high-fidelity...</div>
             </div>
           )}
 
@@ -372,7 +400,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 </div>
 
                 <button className="btn btn-secondary btn-sm" onClick={handlePickFile} style={{ flexShrink: 0 }}>
-                  <FilePlus size={13} />
+                  <FileUp size={13} />
                   <span>Change File</span>
                 </button>
               </div>
@@ -437,7 +465,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   )}
                 </div>
 
-                {/* Two Column Layout: Page List & Live Preview */}
+                {/* Two Column Layout: Page List & High-Fidelity Preview */}
                 <div className="import-modal-grid">
                   {/* Page List Cards */}
                   <div style={{
@@ -489,9 +517,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                               <span style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
                                 Page {page.pageNumber}
                               </span>
-                              <span style={{ fontSize: '10px', color: '#71717a' }}>
-                                ({page.text.split('\n').filter(Boolean).length} lines)
-                              </span>
+                              {page.imageUrl && (
+                                <span style={{ fontSize: '9px', padding: '1px 4px', borderRadius: '3px', backgroundColor: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' }}>
+                                  Visual Page
+                                </span>
+                              )}
                             </div>
                             <div style={{
                               fontSize: '11px',
@@ -514,7 +544,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     )}
                   </div>
 
-                  {/* Page Preview Box */}
+                  {/* High-Fidelity Page Preview Box */}
                   <div style={{
                     border: '1px solid #27272a',
                     borderRadius: '8px',
@@ -523,8 +553,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     flexDirection: 'column',
                     overflow: 'hidden',
                   }}>
+                    {/* Preview Mode Selector Header */}
                     <div style={{
-                      padding: '6px 10px',
+                      padding: '5px 10px',
                       backgroundColor: '#1c1c20',
                       borderBottom: '1px solid #27272a',
                       fontSize: '11px',
@@ -535,32 +566,220 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       justifyContent: 'space-between',
                     }}>
                       <span>Page {activePreviewPageNum || 1} Preview</span>
-                      <Eye size={12} />
+
+                      {/* Visual vs Text Switcher */}
+                      {activePage?.imageUrl && (
+                        <div style={{ display: 'flex', backgroundColor: '#18181b', borderRadius: '4px', padding: '2px', border: '1px solid #27272a' }}>
+                          <button
+                            className={`btn btn-sm ${previewMode === 'visual' ? 'btn-secondary' : 'btn-ghost'}`}
+                            onClick={() => setPreviewMode('visual')}
+                            style={{ padding: '1px 6px', fontSize: '10px' }}
+                            title="View full visual page screenshot (with logos, colors, and layout)"
+                          >
+                            <ImageIcon size={11} style={{ marginRight: '3px' }} />
+                            Visual Page
+                          </button>
+                          <button
+                            className={`btn btn-sm ${previewMode === 'text' ? 'btn-secondary' : 'btn-ghost'}`}
+                            onClick={() => setPreviewMode('text')}
+                            style={{ padding: '1px 6px', fontSize: '10px' }}
+                            title="View extracted plain text content"
+                          >
+                            <Type size={11} style={{ marginRight: '3px' }} />
+                            Text
+                          </button>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Preview Content Area */}
                     <div style={{
                       padding: '10px',
                       overflowY: 'auto',
                       flex: 1,
-                      fontSize: '11px',
-                      color: '#d4d4d8',
-                      fontFamily: 'monospace',
-                      lineHeight: '1.4',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: previewMode === 'visual' && activePage?.imageUrl ? '#27272a' : '#141416',
                     }}>
-                      {activePreviewText || 'Click any page to preview its text content'}
+                      {previewMode === 'visual' && activePage?.imageUrl ? (
+                        <img
+                          src={activePage.imageUrl}
+                          alt={`Page ${activePreviewPageNum} preview`}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                            borderRadius: '4px',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                            backgroundColor: '#ffffff',
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          fontSize: '11px',
+                          color: '#d4d4d8',
+                          fontFamily: 'monospace',
+                          lineHeight: '1.4',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                        }}>
+                          {activePage?.text || 'Click any page to preview its content'}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Step 3: Where to Insert */}
+              {/* Step 2: Choose Import Format (Visual Cover / Template vs Handwritten Notes) */}
+              {activePage?.imageUrl && (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#202024',
+                  border: '1px solid #27272a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
+                      Import Formatting Style:
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
+                      Choose how to render these imported page(s) in your notes
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      className={`btn btn-sm ${importFormat === 'visual' ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => setImportFormat('visual')}
+                      style={{ fontSize: '12px' }}
+                    >
+                      <ImageIcon size={13} />
+                      <span>Preserve Visual Page (Logos & Layout)</span>
+                    </button>
+                    <button
+                      className={`btn btn-sm ${importFormat === 'handwritten' ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => setImportFormat('handwritten')}
+                      style={{ fontSize: '12px' }}
+                    >
+                      <Type size={13} />
+                      <span>Transcribe to Handwriting</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Where to Insert Content (Includes Start & Specific Page Number as requested) */}
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: '#e4e4e7', display: 'block', marginBottom: '8px' }}>
                   Where to Insert Content:
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px' }}>
-                  {/* Option 1: At Cursor */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' }}>
+                  {/* Option 1: Insert at Start */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '9px',
+                      borderRadius: '8px',
+                      backgroundColor: insertionTarget === 'start' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                      border: `1.5px solid ${insertionTarget === 'start' ? '#6366f1' : '#27272a'}`,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="insertionTarget"
+                      value="start"
+                      checked={insertionTarget === 'start'}
+                      onChange={() => setInsertionTarget('start')}
+                      style={{ marginTop: '2px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <ArrowUpToLine size={13} color="#818cf8" />
+                        <span>At Start</span>
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                        Beginning of note (Cover / Page 1)
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* Option 2: Insert at Specific Page Number */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '9px',
+                      borderRadius: '8px',
+                      backgroundColor: insertionTarget === 'specific-page' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                      border: `1.5px solid ${insertionTarget === 'specific-page' ? '#6366f1' : '#27272a'}`,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="insertionTarget"
+                      value="specific-page"
+                      checked={insertionTarget === 'specific-page'}
+                      onChange={() => setInsertionTarget('specific-page')}
+                      style={{ marginTop: '2px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Layers size={13} color="#a855f7" />
+                        <span>At Page Number</span>
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                        Choose specific page position
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* Option 3: Append to End */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '9px',
+                      borderRadius: '8px',
+                      backgroundColor: insertionTarget === 'end' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                      border: `1.5px solid ${insertionTarget === 'end' ? '#6366f1' : '#27272a'}`,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="insertionTarget"
+                      value="end"
+                      checked={insertionTarget === 'end'}
+                      onChange={() => setInsertionTarget('end')}
+                      style={{ marginTop: '2px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <ArrowDownToLine size={13} color="#38bdf8" />
+                        <span>At End</span>
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                        Add after the last page
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* Option 4: At Cursor Position */}
                   <label
                     style={{
                       display: 'flex',
@@ -586,74 +805,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                         📍 At Cursor
                       </div>
                       <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Insert where cursor is
+                        Insert at current editor cursor
                       </div>
                     </div>
                   </label>
 
-                  {/* Option 2: As New Handwritten Page */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px',
-                      borderRadius: '8px',
-                      backgroundColor: insertionTarget === 'new-page' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
-                      border: `1.5px solid ${insertionTarget === 'new-page' ? '#6366f1' : '#27272a'}`,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="insertionTarget"
-                      value="new-page"
-                      checked={insertionTarget === 'new-page'}
-                      onChange={() => setInsertionTarget('new-page')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
-                        📄 New Sheet(s)
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Create fresh page(s)
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Option 3: Append to End */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px',
-                      borderRadius: '8px',
-                      backgroundColor: insertionTarget === 'append' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
-                      border: `1.5px solid ${insertionTarget === 'append' ? '#6366f1' : '#27272a'}`,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="insertionTarget"
-                      value="append"
-                      checked={insertionTarget === 'append'}
-                      onChange={() => setInsertionTarget('append')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
-                        ⬇️ Append to End
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Add after last page
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Option 4: Replace Entire Note */}
+                  {/* Option 5: Replace Entire Note */}
                   <label
                     style={{
                       display: 'flex',
@@ -675,8 +832,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       style={{ marginTop: '2px' }}
                     />
                     <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
-                        🔄 Replace Note
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <RotateCcw size={13} color="#f87171" />
+                        <span>Replace Note</span>
                       </div>
                       <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
                         Overwrite current note
@@ -684,6 +842,79 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     </div>
                   </label>
                 </div>
+
+                {/* Specific Page Sub-Configuration Panel */}
+                {insertionTarget === 'specific-page' && (
+                  <div style={{
+                    marginTop: '10px',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    backgroundColor: '#202024',
+                    border: '1px solid #6366f1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                    animation: 'fadeIn 0.15s ease-out',
+                  }}>
+                    <span style={{ fontSize: '12px', color: '#e4e4e7', fontWeight: 500 }}>
+                      Insert:
+                    </span>
+
+                    {/* Before or After Selection */}
+                    <div style={{ display: 'flex', backgroundColor: '#18181b', borderRadius: '6px', padding: '2px', border: '1px solid #27272a' }}>
+                      <button
+                        className={`btn btn-sm ${pagePosition === 'before' ? 'btn-secondary' : 'btn-ghost'}`}
+                        onClick={() => setPagePosition('before')}
+                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                      >
+                        Before
+                      </button>
+                      <button
+                        className={`btn btn-sm ${pagePosition === 'after' ? 'btn-secondary' : 'btn-ghost'}`}
+                        onClick={() => setPagePosition('after')}
+                        style={{ padding: '3px 8px', fontSize: '11px' }}
+                      >
+                        After
+                      </button>
+                    </div>
+
+                    <span style={{ fontSize: '12px', color: '#e4e4e7', fontWeight: 500 }}>
+                      Page:
+                    </span>
+
+                    {/* Page Number Input */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={Math.max(1, totalNotePages)}
+                        value={targetPageNumber}
+                        onChange={(e) => setTargetPageNumber(Math.max(1, parseInt(e.target.value) || 1))}
+                        style={{
+                          width: '54px',
+                          padding: '4px 8px',
+                          backgroundColor: '#18181b',
+                          border: '1px solid #3f3f46',
+                          borderRadius: '6px',
+                          color: '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          textAlign: 'center',
+                          outline: 'none',
+                        }}
+                      />
+                      <span style={{ fontSize: '11px', color: '#71717a' }}>
+                        (Current note has {totalNotePages} {totalNotePages === 1 ? 'page' : 'pages'})
+                      </span>
+                    </div>
+
+                    {/* Real-time description */}
+                    <div style={{ fontSize: '11px', color: '#a78bfa', marginLeft: 'auto' }}>
+                      ➔ Will insert {pagePosition} Page {targetPageNumber}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

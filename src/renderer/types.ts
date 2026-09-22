@@ -1,80 +1,59 @@
-export type PaperType = 
-  | 'ruled'
-  | 'college'
-  | 'grid'
-  | 'dots'
-  | 'legal'
-  | 'parchment'
-  | 'blank'
-  | 'chalkboard';
-
-export type HandwritingFont = 
-  | 'Caveat'
-  | 'Patrick Hand'
-  | 'Shadows Into Light'
-  | 'Indie Flower'
-  | 'Homemade Apple'
-  | 'Architects Daughter'
-  | 'Kalam'
-  | 'Gloria Hallelujah'
-  | 'Reenie Beanie'
-  | 'Nothing You Could Do'
-  | 'Marck Script'
-  | 'Rock Salt'
-  | 'Cedarville Cursive'
-  | 'Just Another Hand'
-  | 'Nanum Pen Script';
-
-export type JitterIntensity = 'none' | 'subtle' | 'medium' | 'strong';
+export interface PaperDimensions {
+  width: number;
+  height: number;
+}
 
 export type PageSize = 'A4' | 'Letter';
 export type PageOrientation = 'portrait' | 'landscape';
+export type PenThickness = 'fine' | 'regular' | 'medium' | 'bold';
+export type JitterIntensity = 'none' | 'subtle' | 'medium' | 'strong';
+export type PageNumberStyle = 'x-of-y' | 'number-only' | 'page-x';
 
 export interface HandwritingSettings {
-  font: HandwritingFont;
-  fontSize: number; // in px
-  lineHeight: number; // in px, aligns with paper ruling
-  letterSpacing: number; // in px
-  wordSpacing: number; // in px
+  font: string;
+  fontSize: number;
+  lineHeight: number;
+  letterSpacing: number;
+  wordSpacing: number;
   inkColor: string;
-  penThickness: 'fine' | 'regular' | 'medium' | 'bold';
-  paperType: PaperType;
-  paperColor?: string; // override
+  penThickness: PenThickness;
   jitter: JitterIntensity;
-  pageSize: PageSize;
-  orientation: PageOrientation;
+  slant: number;
+  baselineOffset: number;
+  paperType: string;
+  paperColor?: string;
   showMarginLine: boolean;
-  marginLineWidth: number; // px from left
+  marginLineWidth: number;
   showHoles: boolean;
   showHeader: boolean;
-  headerDate: string;
-  headerSubject: string;
+  headerDate?: string;
+  headerSubject?: string;
   showPageNumbers: boolean;
-  pageNumberStyle: 'page-x' | 'x-of-y' | 'number-only';
-  slant: number; // deg slant -5 to +15 deg
-  baselineOffset: number; // px vertical shift to sit right above ruled line
-}
-
-export interface PdfExportOptions {
+  pageNumberStyle: PageNumberStyle;
   pageSize: PageSize;
-  landscape: boolean;
-  marginsType?: number;
-  printBackground: boolean;
+  orientation: PageOrientation;
 }
 
 export interface SampleTemplate {
   id: string;
   title: string;
+  category: 'academic' | 'creative' | 'technical' | 'meeting' | 'letter';
   description: string;
-  category: string;
   markdown: string;
-  recommendedSettings?: Partial<HandwritingSettings>;
+  recommendedSettings: Partial<HandwritingSettings>;
+}
+
+export interface PdfExportOptions {
+  pageSize: PageSize;
+  landscape: boolean;
+  printBackground: boolean;
 }
 
 export interface ParsedPage {
   pageNumber: number;
   text: string;
   preview: string;
+  imageUrl?: string;
 }
 
 export interface ParsedDocument {
@@ -87,7 +66,14 @@ export interface ParsedDocument {
   error?: string;
 }
 
-export type InsertionTarget = 'cursor' | 'new-page' | 'append' | 'prepend' | 'replace';
+export type InsertionTarget = 'start' | 'end' | 'specific-page' | 'cursor' | 'replace' | 'new-page' | 'prepend' | 'append';
+
+export interface InsertionConfig {
+  target: InsertionTarget;
+  pageNumber?: number;
+  position?: 'before' | 'after';
+  importFormat?: 'handwritten' | 'visual';
+}
 
 export interface ElectronAPI {
   openFile: () => Promise<{ content: string; filename: string; path: string } | null>;

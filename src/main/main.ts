@@ -28,15 +28,39 @@ async function parseDocumentData(buffer: Buffer, filename: string): Promise<any>
     try {
       const { PDFParse } = require('pdf-parse');
       const parser = new PDFParse({ data: buffer });
-      const result = await parser.getText();
-      const pages = (result.pages || []).map((p: any) => {
+      
+      // 1. Extract text and page numbers
+      const textResult = await parser.getText();
+
+      // 2. Extract visual page screenshots sequentially
+      let screenshotResult: any = null;
+      try {
+        screenshotResult = await parser.getScreenshot();
+      } catch (sErr) {
+        console.warn('Screenshot extraction failed, using text-only fallback:', sErr);
+      }
+
+      const screenshotMap = new Map<number, string>();
+      if (screenshotResult && screenshotResult.pages) {
+        screenshotResult.pages.forEach((p: any) => {
+          if (p.dataUrl) {
+            // p.pageNumber is 1-indexed
+            screenshotMap.set(p.pageNumber, p.dataUrl);
+          }
+        });
+      }
+
+      const pages = (textResult.pages || []).map((p: any) => {
         const text = (p.text || '').trim();
+        const imageUrl = screenshotMap.get(p.num);
         return {
           pageNumber: p.num,
           text,
           preview: text.replace(/\s+/g, ' ').substring(0, 140),
+          imageUrl,
         };
       });
+
       await parser.destroy();
       return {
         type: 'pdf',
@@ -56,7 +80,13 @@ async function parseDocumentData(buffer: Buffer, filename: string): Promise<any>
       const mammoth = require('mammoth');
       const options = {
         ignoreEmptyParagraphs: true,
-        convertImage: mammoth.images.imgElement(() => Promise.resolve({})),
+        convertImage: mammoth.images.imgElement((image: any) => {
+          return image.read('base64').then((imageBuffer: string) => {
+            return {
+              src: `data:${image.contentType};base64,${imageBuffer}`,
+            };
+          });
+        }),
       };
       const result = await mammoth.convertToMarkdown({ buffer }, options);
       const markdown = (result.value || '').trim();
@@ -67,7 +97,7 @@ async function parseDocumentData(buffer: Buffer, filename: string): Promise<any>
 
       // If only 1 section and long, split by headings (H1 or H2)
       if (rawPages.length <= 1 && markdown.length > 2000) {
-        const headerParts = markdown.split(/(?=^#{1,2}\s)/m).map((s: string) => s.trim()).filter(Boolean);
+        const headerParts = markdown.split(/(?=^#{1,2}\\s)/m).map((s: string) => s.trim()).filter(Boolean);
         if (headerParts.length > 1) {
           rawPages = headerParts;
         }

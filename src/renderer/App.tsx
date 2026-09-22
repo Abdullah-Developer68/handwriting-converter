@@ -6,7 +6,7 @@ import { StyleToolbar } from './components/StyleToolbar';
 import { TemplatesModal } from './components/TemplatesModal';
 import { ExportModal } from './components/ExportModal';
 import { ImportModal } from './components/ImportModal';
-import { HandwritingSettings, SampleTemplate, InsertionTarget } from './types';
+import { HandwritingSettings, SampleTemplate, InsertionConfig } from './types';
 import { DEFAULT_SETTINGS } from './utils/paperStyles';
 import { SAMPLE_TEMPLATES } from './utils/defaultTemplates';
 import { splitMarkdownIntoPages } from './utils/markdownParser';
@@ -33,8 +33,7 @@ export const App: React.FC = () => {
     return DEFAULT_SETTINGS;
   });
 
-  const [viewMode, setViewMode] = useState<'split' | 'preview' | 'editor'>('split');
-  const [zoom, setZoom] = useState<number>(100);
+  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => window.innerWidth > 960);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
@@ -42,61 +41,58 @@ export const App: React.FC = () => {
   const [droppedImportFile, setDroppedImportFile] = useState<File | null>(null);
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
-  // Save changes to localStorage
+  // Sync markdown to localStorage
   useEffect(() => {
     localStorage.setItem('scribecraft_markdown', markdown);
   }, [markdown]);
 
+  // Sync settings to localStorage
   useEffect(() => {
     localStorage.setItem('scribecraft_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // Split markdown into pages (automatically paginates whenever content exceeds 1 sheet)
+  // Derive pages based on explicit page breaks and line capacity
   const pages = useMemo(() => {
     const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
     return splitMarkdownIntoPages(markdown, maxLines);
   }, [markdown, settings.lineHeight]);
 
-  // Word count
-  const wordCount = useMemo(() => {
-    const words = markdown.trim().split(/\s+/).filter(Boolean);
-    return words.length;
-  }, [markdown]);
-
-  // Update settings handler
-  const handleUpdateSettings = (updated: Partial<HandwritingSettings>) => {
-    setSettings((prev) => ({ ...prev, ...updated }));
-  };
-
-  // Open file handler (Electron IPC or HTML File input fallback)
+  // File Open Handler
   const handleOpenFile = async () => {
     if (window.electronAPI) {
       try {
-        const file = await window.electronAPI.openFile();
-        if (file) {
-          setMarkdown(file.content);
-          setCurrentFileName(file.filename);
-          setCurrentFilePath(file.path);
+        const fileData = await window.electronAPI.openFile();
+        if (fileData) {
+          setMarkdown(fileData.content);
+          setCurrentFileName(fileData.filename);
+          setCurrentFilePath(fileData.path);
         }
       } catch (err) {
-        console.error('Failed to open file via electron:', err);
+        console.error('Failed to open file:', err);
       }
     } else {
-      // Browser fallback
+      // Browser fallback file picker
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.md,.markdown,.txt';
       input.onchange = (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
         if (file) {
-          handleDropFile(file);
+          const reader = new FileReader();
+          reader.onload = (re) => {
+            const content = re.target?.result as string;
+            setMarkdown(content || '');
+            setCurrentFileName(file.name);
+            setCurrentFilePath(null);
+          };
+          reader.readAsText(file);
         }
       };
       input.click();
     }
   };
 
-  // Save file handler
+  // File Save Handler
   const handleSaveFile = async () => {
     if (window.electronAPI) {
       try {
@@ -145,36 +141,75 @@ export const App: React.FC = () => {
   };
 
   // Insert imported document content into chosen destination
-  const handleInsertContent = (contentToInsert: string, target: InsertionTarget) => {
+  const handleInsertContent = (
+    pagesToInsert: { text: string; imageUrl?: string }[],
+    config: InsertionConfig
+  ) => {
+    // Determine markdown content per page depending on importFormat
+    const formattedPages = pagesToInsert.map((p) => {
+      if (config.importFormat === 'visual' && p.imageUrl) {
+        return `<div class="visual-page-embed">\n<img src="${p.imageUrl}" alt="Document Page" />\n</div>`;
+      }
+      return p.text;
+    });
+
+    const contentToInsert = formattedPages.join('\n\n<!-- pagebreak -->\n\n');
+
     setMarkdown((prev) => {
-      if (target === 'replace') {
+      if (config.target === 'replace') {
         return contentToInsert;
       }
-      if (target === 'prepend') {
-        return `${contentToInsert}\n\n<!-- pagebreak -->\n\n${prev}`.trim();
+
+      // Option 1: At Start
+      if (config.target === 'start' || config.target === 'prepend') {
+        if (!prev.trim()) return contentToInsert;
+        return `${contentToInsert}\n\n<!-- pagebreak -->\n\n${prev.trimStart()}`;
       }
-      if (target === 'append') {
-        const sep = prev.trim() ? '\n\n<!-- pagebreak -->\n\n' : '';
-        return prev + sep + contentToInsert;
+
+      // Option 2: At End
+      if (config.target === 'end' || config.target === 'append') {
+        if (!prev.trim()) return contentToInsert;
+        return `${prev.trimEnd()}\n\n<!-- pagebreak -->\n\n${contentToInsert}`;
       }
-      if (target === 'new-page') {
+
+      // Option 3: At Specific Page Number (before or after)
+      if (config.target === 'specific-page') {
+        const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
+        let existingPages = prev.split(explicitBreakRegex).map((s) => s.trim()).filter(Boolean);
+
+        // If no manual pagebreak exists yet and document is long, partition using splitMarkdownIntoPages
+        if (existingPages.length <= 1) {
+          const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
+          const autoPages = splitMarkdownIntoPages(prev, maxLines).filter(Boolean);
+          if (autoPages.length > 1) {
+            existingPages = autoPages;
+          }
+        }
+
+        if (existingPages.length === 0) {
+          return contentToInsert;
+        }
+
+        const targetPage = Math.max(1, Math.min(existingPages.length, config.pageNumber || 1));
+        const insertIndex = config.position === 'after' ? targetPage : targetPage - 1;
+
+        existingPages.splice(insertIndex, 0, contentToInsert);
+        return existingPages.join('\n\n<!-- pagebreak -->\n\n');
+      }
+
+      // Option 4: At Cursor
+      if (config.target === 'cursor') {
         if (cursorPosition !== null && cursorPosition >= 0 && cursorPosition <= prev.length) {
-          const before = prev.slice(0, cursorPosition).trimEnd();
-          const after = prev.slice(cursorPosition).trimStart();
-          const beforeSep = before ? '\n\n<!-- pagebreak -->\n\n' : '';
-          const afterSep = after ? '\n\n<!-- pagebreak -->\n\n' : '';
-          return `${before}${beforeSep}${contentToInsert}${afterSep}${after}`;
+          const before = prev.slice(0, cursorPosition);
+          const after = prev.slice(cursorPosition);
+          return before + contentToInsert + after;
         }
         const sep = prev.trim() ? '\n\n<!-- pagebreak -->\n\n' : '';
         return prev + sep + contentToInsert;
       }
-      // target === 'cursor'
-      if (cursorPosition !== null && cursorPosition >= 0 && cursorPosition <= prev.length) {
-        const before = prev.slice(0, cursorPosition);
-        const after = prev.slice(cursorPosition);
-        return before + contentToInsert + after;
-      }
-      const sep = prev.trim() ? '\n\n' : '';
+
+      // Default: append to end
+      const sep = prev.trim() ? '\n\n<!-- pagebreak -->\n\n' : '';
       return prev + sep + contentToInsert;
     });
   };
@@ -228,43 +263,42 @@ export const App: React.FC = () => {
         onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
         isSidebarOpen={isSidebarOpen}
         viewMode={viewMode}
-        setViewMode={setViewMode}
-        pageCount={pages.length}
-        wordCount={wordCount}
+        onViewModeChange={setViewMode}
         currentFileName={currentFileName}
+        currentFilePath={currentFilePath}
+        wordCount={markdown.trim() ? markdown.trim().split(/\s+/).length : 0}
+        pageCount={pages.length}
       />
 
-      {/* Main Content Workspace */}
+      {/* Main Workspace Area */}
       <div className="workspace-container">
-        {/* Editor Pane (Hidden in Preview-only mode) */}
+        {/* Markdown Source Editor */}
         {viewMode !== 'preview' && (
           <Editor
             value={markdown}
             onChange={setMarkdown}
             onDropFile={handleDropFile}
-            onCursorChange={setCursorPosition}
             onOpenImport={() => {
               setDroppedImportFile(null);
               setIsImportOpen(true);
             }}
+            onCursorChange={setCursorPosition}
           />
         )}
 
-        {/* Paper Live Preview Pane (Hidden in Editor-only mode) */}
+        {/* Live Handwritten Realistic Notebook Preview */}
         {viewMode !== 'editor' && (
           <PaperPreview
             pages={pages}
             settings={settings}
-            zoom={zoom}
-            setZoom={setZoom}
           />
         )}
 
-        {/* Handwriting Styles & Paper Configuration Toolbar */}
+        {/* Handwriting Realism & Stationery Settings Sidebar */}
         {isSidebarOpen && (
           <StyleToolbar
             settings={settings}
-            onChange={handleUpdateSettings}
+            onChange={setSettings}
             onClose={() => setIsSidebarOpen(false)}
           />
         )}
@@ -295,6 +329,7 @@ export const App: React.FC = () => {
         onInsert={handleInsertContent}
         initialFile={droppedImportFile}
         hasCursorPosition={cursorPosition !== null}
+        totalNotePages={pages.length}
       />
     </div>
   );

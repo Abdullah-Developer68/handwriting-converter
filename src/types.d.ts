@@ -11,6 +11,7 @@ export interface ParsedPage {
   pageNumber: number;
   text: string;
   preview: string;
+  imageUrl?: string;
 }
 
 export interface ParsedDocument {
@@ -21,6 +22,15 @@ export interface ParsedDocument {
   pages: ParsedPage[];
   fullContent: string;
   error?: string;
+}
+
+export type InsertionTarget = 'start' | 'end' | 'specific-page' | 'cursor' | 'replace' | 'new-page' | 'prepend' | 'append';
+
+export interface InsertionConfig {
+  target: InsertionTarget;
+  pageNumber?: number;
+  position?: 'before' | 'after';
+  importFormat?: 'handwritten' | 'visual';
 }
 
 declare global {
