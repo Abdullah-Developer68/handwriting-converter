@@ -248,20 +248,20 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                   )}
 
                   {/* Header (Date & Subject) */}
-                  {settings?.showHeader && (
+                  {settings?.showHeader && (Boolean(settings?.headerDate) || Boolean(settings?.headerSubject)) && (
                     <div className="paper-header">
-                      <div className="paper-header-date">
-                        <span>Date: </span>
-                        <span className="paper-header-value">
-                          {settings?.headerDate || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                      </div>
-                      <div className="paper-header-subject">
-                        <span>Subject: </span>
-                        <span className="paper-header-value">
-                          {settings?.headerSubject || 'Notes'}
-                        </span>
-                      </div>
+                      {settings?.headerDate && (
+                        <div className="paper-header-date">
+                          <span>Date: </span>
+                          <span className="paper-header-value">{settings.headerDate}</span>
+                        </div>
+                      )}
+                      {settings?.headerSubject && (
+                        <div className="paper-header-subject">
+                          <span>Subject: </span>
+                          <span className="paper-header-value">{settings.headerSubject}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 

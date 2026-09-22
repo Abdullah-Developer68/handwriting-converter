@@ -27,9 +27,9 @@ const DEFAULT_SETTINGS: HandwritingSettings = {
   showMarginLine: true,
   marginLineWidth: 70,
   showHoles: true,
-  showHeader: true,
-  headerDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  headerSubject: 'Computer Networks - Lab 01',
+  showHeader: false,
+  headerDate: '',
+  headerSubject: '',
   showPageNumbers: true,
   pageNumberStyle: 'x-of-y',
 };

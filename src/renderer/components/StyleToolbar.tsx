@@ -339,7 +339,7 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange, 
         </label>
 
         {/* Header date/subject toggle */}
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: settings.showHeader ? '6px' : '10px', cursor: 'pointer' }}>
           <span style={{ fontSize: '12px', color: '#e4e4e7' }}>Header Date & Subject</span>
           <input
             type="checkbox"
@@ -348,6 +348,41 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange, 
             style={{ accentColor: '#6366f1' }}
           />
         </label>
+
+        {settings.showHeader && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px', paddingLeft: '8px', borderLeft: '2px solid #3f3f46' }}>
+            <input
+              type="text"
+              placeholder="Subject (leave blank for none)"
+              value={settings.headerSubject || ''}
+              onChange={(e) => onChange({ headerSubject: e.target.value })}
+              style={{
+                backgroundColor: '#18181b',
+                border: '1px solid #27272a',
+                borderRadius: '4px',
+                color: '#f4f4f5',
+                fontSize: '11px',
+                padding: '4px 8px',
+                outline: 'none',
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Date (leave blank for none)"
+              value={settings.headerDate || ''}
+              onChange={(e) => onChange({ headerDate: e.target.value })}
+              style={{
+                backgroundColor: '#18181b',
+                border: '1px solid #27272a',
+                borderRadius: '4px',
+                color: '#f4f4f5',
+                fontSize: '11px',
+                padding: '4px 8px',
+                outline: 'none',
+              }}
+            />
+          </div>
+        )}
 
         {/* Show Page Numbers */}
         <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
