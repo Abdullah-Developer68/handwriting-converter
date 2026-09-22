@@ -10,7 +10,6 @@ import {
   X, 
   Loader2, 
   AlertCircle,
-  Eye,
   Check,
   Image as ImageIcon,
   Type,
@@ -46,7 +45,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  // Insertion Destination Options
+  // Insertion Destination Options (At the end of the dialog)
   const [insertionTarget, setInsertionTarget] = useState<InsertionTarget>('start');
   const [targetPageNumber, setTargetPageNumber] = useState<number>(1);
   const [pagePosition, setPagePosition] = useState<'before' | 'after'>('after');
@@ -89,7 +88,6 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         const allNums = parsed.pages.map((p) => p.pageNumber);
         setSelectedPageNumbers(allNums);
         setActivePreviewPageNum(allNums[0] || null);
-        // If the first page has an imageUrl, default to visual preview & visual import format
         if (parsed.pages[0]?.imageUrl) {
           setPreviewMode('visual');
           setImportFormat('visual');
@@ -279,8 +277,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Modal Body - Smooth vertical scrolling without element collision */}
+        <div className="modal-body">
           {/* Error Message */}
           {errorMessage && (
             <div style={{
@@ -293,6 +291,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               border: '1px solid rgba(239, 68, 68, 0.3)',
               color: '#f87171',
               fontSize: '12px',
+              flexShrink: 0,
             }}>
               <AlertCircle size={16} style={{ flexShrink: 0 }} />
               <span>{errorMessage}</span>
@@ -376,19 +375,20 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           {/* State 2: Document Loaded */}
           {!isLoading && documentData && (
             <>
-              {/* Document Overview Bar */}
+              {/* Top Overview Bar */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '10px 14px',
+                padding: '9px 12px',
                 backgroundColor: '#202024',
                 borderRadius: '8px',
                 border: '1px solid #27272a',
                 gap: '10px',
+                flexShrink: 0,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                  <FileText size={20} color={documentData.type === 'pdf' ? '#ef4444' : '#3b82f6'} style={{ flexShrink: 0 }} />
+                  <FileText size={18} color={documentData.type === 'pdf' ? '#ef4444' : '#3b82f6'} style={{ flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '13px', fontWeight: 600, color: '#f4f4f5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {documentData.filename}
@@ -405,13 +405,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 </button>
               </div>
 
-              {/* Page Selection Controls */}
-              <div>
+              {/* Pages & Preview Section */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '8px',
                   gap: '8px',
                   flexWrap: 'wrap',
                 }}>
@@ -465,9 +464,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   )}
                 </div>
 
-                {/* Two Column Layout: Page List & High-Fidelity Preview */}
+                {/* Two Column Layout: Page List (Left) & Preview Box (Right) */}
                 <div className="import-modal-grid">
-                  {/* Page List Cards */}
+                  {/* Left Column: Page List Cards */}
                   <div style={{
                     overflowY: 'auto',
                     border: '1px solid #27272a',
@@ -477,6 +476,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px',
+                    height: '100%',
+                    minHeight: 0,
+                    boxSizing: 'border-box',
                   }}>
                     {filteredPages.map((page) => {
                       const isSelected = selectedPageNumbers.includes(page.pageNumber);
@@ -544,16 +546,20 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     )}
                   </div>
 
-                  {/* High-Fidelity Page Preview Box */}
+                  {/* Right Column: High-Fidelity Page Preview Box (Strictly Bounded) */}
                   <div style={{
                     border: '1px solid #27272a',
                     borderRadius: '8px',
                     backgroundColor: '#141416',
                     display: 'flex',
                     flexDirection: 'column',
+                    height: '100%',
+                    minHeight: 0,
+                    maxHeight: '100%',
                     overflow: 'hidden',
+                    boxSizing: 'border-box',
                   }}>
-                    {/* Preview Mode Selector Header */}
+                    {/* Preview Header / Mode Switcher */}
                     <div style={{
                       padding: '5px 10px',
                       backgroundColor: '#1c1c20',
@@ -564,6 +570,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
+                      flexShrink: 0,
+                      height: '32px',
+                      boxSizing: 'border-box',
                     }}>
                       <span>Page {activePreviewPageNum || 1} Preview</span>
 
@@ -592,15 +601,17 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       )}
                     </div>
 
-                    {/* Preview Content Area */}
+                    {/* Preview Content Area - image scales proportionally without overflowing */}
                     <div style={{
-                      padding: '10px',
-                      overflowY: 'auto',
+                      padding: '8px',
                       flex: 1,
+                      minHeight: 0,
+                      overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: previewMode === 'visual' && activePage?.imageUrl ? '#27272a' : '#141416',
+                      backgroundColor: previewMode === 'visual' && activePage?.imageUrl ? '#232326' : '#141416',
+                      position: 'relative',
                     }}>
                       {previewMode === 'visual' && activePage?.imageUrl ? (
                         <img
@@ -609,10 +620,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                           style={{
                             maxWidth: '100%',
                             maxHeight: '100%',
+                            height: '100%',
+                            width: 'auto',
                             objectFit: 'contain',
                             borderRadius: '4px',
-                            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
                             backgroundColor: '#ffffff',
+                            display: 'block',
                           }}
                         />
                       ) : (
@@ -625,6 +639,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                           lineHeight: '1.4',
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
+                          overflowY: 'auto',
                         }}>
                           {activePage?.text || 'Click any page to preview its content'}
                         </div>
@@ -634,293 +649,294 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 </div>
               </div>
 
-              {/* Step 2: Choose Import Format (Visual Cover / Template vs Handwritten Notes) */}
-              {activePage?.imageUrl && (
-                <div style={{
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  backgroundColor: '#202024',
-                  border: '1px solid #27272a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                }}>
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
-                      Import Formatting Style:
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
-                      Choose how to render these imported page(s) in your notes
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      className={`btn btn-sm ${importFormat === 'visual' ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => setImportFormat('visual')}
-                      style={{ fontSize: '12px' }}
-                    >
-                      <ImageIcon size={13} />
-                      <span>Preserve Visual Page (Logos & Layout)</span>
-                    </button>
-                    <button
-                      className={`btn btn-sm ${importFormat === 'handwritten' ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => setImportFormat('handwritten')}
-                      style={{ fontSize: '12px' }}
-                    >
-                      <Type size={13} />
-                      <span>Transcribe to Handwriting</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Where to Insert Content (Includes Start & Specific Page Number as requested) */}
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#e4e4e7', display: 'block', marginBottom: '8px' }}>
-                  Where to Insert Content:
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' }}>
-                  {/* Option 1: Insert at Start */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px',
-                      borderRadius: '8px',
-                      backgroundColor: insertionTarget === 'start' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
-                      border: `1.5px solid ${insertionTarget === 'start' ? '#6366f1' : '#27272a'}`,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="insertionTarget"
-                      value="start"
-                      checked={insertionTarget === 'start'}
-                      onChange={() => setInsertionTarget('start')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <ArrowUpToLine size={13} color="#818cf8" />
-                        <span>At Start</span>
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Beginning of note (Cover / Page 1)
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Option 2: Insert at Specific Page Number */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px',
-                      borderRadius: '8px',
-                      backgroundColor: insertionTarget === 'specific-page' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
-                      border: `1.5px solid ${insertionTarget === 'specific-page' ? '#6366f1' : '#27272a'}`,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="insertionTarget"
-                      value="specific-page"
-                      checked={insertionTarget === 'specific-page'}
-                      onChange={() => setInsertionTarget('specific-page')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Layers size={13} color="#a855f7" />
-                        <span>At Page Number</span>
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Choose specific page position
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Option 3: Append to End */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px',
-                      borderRadius: '8px',
-                      backgroundColor: insertionTarget === 'end' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
-                      border: `1.5px solid ${insertionTarget === 'end' ? '#6366f1' : '#27272a'}`,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="insertionTarget"
-                      value="end"
-                      checked={insertionTarget === 'end'}
-                      onChange={() => setInsertionTarget('end')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <ArrowDownToLine size={13} color="#38bdf8" />
-                        <span>At End</span>
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Add after the last page
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Option 4: At Cursor Position */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px',
-                      borderRadius: '8px',
-                      backgroundColor: insertionTarget === 'cursor' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
-                      border: `1.5px solid ${insertionTarget === 'cursor' ? '#6366f1' : '#27272a'}`,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="insertionTarget"
-                      value="cursor"
-                      checked={insertionTarget === 'cursor'}
-                      onChange={() => setInsertionTarget('cursor')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
-                        📍 At Cursor
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Insert at current editor cursor
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Option 5: Replace Entire Note */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      padding: '9px',
-                      borderRadius: '8px',
-                      backgroundColor: insertionTarget === 'replace' ? 'rgba(239, 68, 68, 0.12)' : '#18181b',
-                      border: `1.5px solid ${insertionTarget === 'replace' ? '#ef4444' : '#27272a'}`,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="insertionTarget"
-                      value="replace"
-                      checked={insertionTarget === 'replace'}
-                      onChange={() => setInsertionTarget('replace')}
-                      style={{ marginTop: '2px' }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <RotateCcw size={13} color="#f87171" />
-                        <span>Replace Note</span>
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
-                        Overwrite current note
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Specific Page Sub-Configuration Panel */}
-                {insertionTarget === 'specific-page' && (
+              {/* OPTIONS AT THE END: Dedicated Clean Container */}
+              <div className="import-options-section">
+                {/* 1. Format Choice (Preserve Visual Page vs Handwritten) */}
+                {activePage?.imageUrl && (
                   <div style={{
-                    marginTop: '10px',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    backgroundColor: '#202024',
-                    border: '1px solid #6366f1',
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     gap: '12px',
+                    paddingBottom: '10px',
+                    borderBottom: '1px solid #27272a',
                     flexWrap: 'wrap',
-                    animation: 'fadeIn 0.15s ease-out',
                   }}>
-                    <span style={{ fontSize: '12px', color: '#e4e4e7', fontWeight: 500 }}>
-                      Insert:
-                    </span>
-
-                    {/* Before or After Selection */}
-                    <div style={{ display: 'flex', backgroundColor: '#18181b', borderRadius: '6px', padding: '2px', border: '1px solid #27272a' }}>
-                      <button
-                        className={`btn btn-sm ${pagePosition === 'before' ? 'btn-secondary' : 'btn-ghost'}`}
-                        onClick={() => setPagePosition('before')}
-                        style={{ padding: '3px 8px', fontSize: '11px' }}
-                      >
-                        Before
-                      </button>
-                      <button
-                        className={`btn btn-sm ${pagePosition === 'after' ? 'btn-secondary' : 'btn-ghost'}`}
-                        onClick={() => setPagePosition('after')}
-                        style={{ padding: '3px 8px', fontSize: '11px' }}
-                      >
-                        After
-                      </button>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
+                        Import Formatting Style:
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
+                        Choose how to render imported page(s)
+                      </div>
                     </div>
 
-                    <span style={{ fontSize: '12px', color: '#e4e4e7', fontWeight: 500 }}>
-                      Page:
-                    </span>
-
-                    {/* Page Number Input */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <input
-                        type="number"
-                        min={1}
-                        max={Math.max(1, totalNotePages)}
-                        value={targetPageNumber}
-                        onChange={(e) => setTargetPageNumber(Math.max(1, parseInt(e.target.value) || 1))}
-                        style={{
-                          width: '54px',
-                          padding: '4px 8px',
-                          backgroundColor: '#18181b',
-                          border: '1px solid #3f3f46',
-                          borderRadius: '6px',
-                          color: '#ffffff',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          textAlign: 'center',
-                          outline: 'none',
-                        }}
-                      />
-                      <span style={{ fontSize: '11px', color: '#71717a' }}>
-                        (Current note has {totalNotePages} {totalNotePages === 1 ? 'page' : 'pages'})
-                      </span>
-                    </div>
-
-                    {/* Real-time description */}
-                    <div style={{ fontSize: '11px', color: '#a78bfa', marginLeft: 'auto' }}>
-                      ➔ Will insert {pagePosition} Page {targetPageNumber}
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        className={`btn btn-sm ${importFormat === 'visual' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setImportFormat('visual')}
+                        style={{ fontSize: '12px' }}
+                      >
+                        <ImageIcon size={13} />
+                        <span>Preserve Visual Page (Logos & Layout)</span>
+                      </button>
+                      <button
+                        className={`btn btn-sm ${importFormat === 'handwritten' ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setImportFormat('handwritten')}
+                        style={{ fontSize: '12px' }}
+                      >
+                        <Type size={13} />
+                        <span>Transcribe to Handwriting</span>
+                      </button>
                     </div>
                   </div>
                 )}
+
+                {/* 2. Where to Insert Content */}
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#e4e4e7', display: 'block', marginBottom: '8px' }}>
+                    Where to Insert Content:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+                    {/* Option 1: At Start */}
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: insertionTarget === 'start' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                        border: `1.5px solid ${insertionTarget === 'start' ? '#6366f1' : '#27272a'}`,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="insertionTarget"
+                        value="start"
+                        checked={insertionTarget === 'start'}
+                        onChange={() => setInsertionTarget('start')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <ArrowUpToLine size={13} color="#818cf8" />
+                          <span>At Start</span>
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                          Beginning (Page 1)
+                        </div>
+                      </div>
+                    </label>
+
+                    {/* Option 2: At Specific Page Number */}
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: insertionTarget === 'specific-page' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                        border: `1.5px solid ${insertionTarget === 'specific-page' ? '#6366f1' : '#27272a'}`,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="insertionTarget"
+                        value="specific-page"
+                        checked={insertionTarget === 'specific-page'}
+                        onChange={() => setInsertionTarget('specific-page')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Layers size={13} color="#a855f7" />
+                          <span>At Page Number</span>
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                          Before or after Page #
+                        </div>
+                      </div>
+                    </label>
+
+                    {/* Option 3: At End */}
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: insertionTarget === 'end' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                        border: `1.5px solid ${insertionTarget === 'end' ? '#6366f1' : '#27272a'}`,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="insertionTarget"
+                        value="end"
+                        checked={insertionTarget === 'end'}
+                        onChange={() => setInsertionTarget('end')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <ArrowDownToLine size={13} color="#38bdf8" />
+                          <span>At End</span>
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                          After last page
+                        </div>
+                      </div>
+                    </label>
+
+                    {/* Option 4: At Cursor */}
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: insertionTarget === 'cursor' ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                        border: `1.5px solid ${insertionTarget === 'cursor' ? '#6366f1' : '#27272a'}`,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="insertionTarget"
+                        value="cursor"
+                        checked={insertionTarget === 'cursor'}
+                        onChange={() => setInsertionTarget('cursor')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5' }}>
+                          📍 At Cursor
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                          At editor cursor
+                        </div>
+                      </div>
+                    </label>
+
+                    {/* Option 5: Replace Note */}
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: insertionTarget === 'replace' ? 'rgba(239, 68, 68, 0.12)' : '#18181b',
+                        border: `1.5px solid ${insertionTarget === 'replace' ? '#ef4444' : '#27272a'}`,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="insertionTarget"
+                        value="replace"
+                        checked={insertionTarget === 'replace'}
+                        onChange={() => setInsertionTarget('replace')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#f4f4f5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <RotateCcw size={13} color="#f87171" />
+                          <span>Replace Note</span>
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#a1a1aa', marginTop: '2px' }}>
+                          Overwrite note
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Specific Page Sub-Configuration Panel */}
+                  {insertionTarget === 'specific-page' && (
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      backgroundColor: '#202024',
+                      border: '1px solid #6366f1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      flexWrap: 'wrap',
+                      animation: 'fadeIn 0.15s ease-out',
+                    }}>
+                      <span style={{ fontSize: '12px', color: '#e4e4e7', fontWeight: 500 }}>
+                        Insert:
+                      </span>
+
+                      {/* Before / After Button Group */}
+                      <div style={{ display: 'flex', backgroundColor: '#18181b', borderRadius: '6px', padding: '2px', border: '1px solid #27272a' }}>
+                        <button
+                          className={`btn btn-sm ${pagePosition === 'before' ? 'btn-secondary' : 'btn-ghost'}`}
+                          onClick={() => setPagePosition('before')}
+                          style={{ padding: '2px 8px', fontSize: '11px' }}
+                        >
+                          Before
+                        </button>
+                        <button
+                          className={`btn btn-sm ${pagePosition === 'after' ? 'btn-secondary' : 'btn-ghost'}`}
+                          onClick={() => setPagePosition('after')}
+                          style={{ padding: '2px 8px', fontSize: '11px' }}
+                        >
+                          After
+                        </button>
+                      </div>
+
+                      <span style={{ fontSize: '12px', color: '#e4e4e7', fontWeight: 500 }}>
+                        Page:
+                      </span>
+
+                      {/* Page Number Input Box */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="number"
+                          min={1}
+                          max={Math.max(1, totalNotePages)}
+                          value={targetPageNumber}
+                          onChange={(e) => setTargetPageNumber(Math.max(1, parseInt(e.target.value) || 1))}
+                          style={{
+                            width: '52px',
+                            padding: '3px 6px',
+                            backgroundColor: '#18181b',
+                            border: '1px solid #3f3f46',
+                            borderRadius: '6px',
+                            color: '#ffffff',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            textAlign: 'center',
+                            outline: 'none',
+                          }}
+                        />
+                        <span style={{ fontSize: '11px', color: '#71717a' }}>
+                          (Current note has {totalNotePages} {totalNotePages === 1 ? 'page' : 'pages'})
+                        </span>
+                      </div>
+
+                      {/* Real-time Confirmation Badge */}
+                      <div style={{ fontSize: '11px', color: '#a78bfa', marginLeft: 'auto' }}>
+                        ➔ Will insert {pagePosition} Page {targetPageNumber}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Modal Footer */}
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>
             Cancel
