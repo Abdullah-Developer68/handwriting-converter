@@ -25,6 +25,46 @@ export const HANDWRITING_FONTS: FontOption[] = [
   { id: 'Nanum Pen Script', name: 'Nanum Pen Script', category: 'Casual Print', preview: 'Delicate fountain pen lettering' },
 ];
 
+/**
+ * Calibrated baseline offsets (in px) for each font
+ * Ensures that lowercase letters rest cleanly 2-4px above the bottom ruled line
+ */
+export const FONT_BASELINE_OFFSETS: Record<HandwritingFont, number> = {
+  'Caveat': 5,
+  'Patrick Hand': 5,
+  'Shadows Into Light': 4,
+  'Indie Flower': 6,
+  'Homemade Apple': 6,
+  'Architects Daughter': 5,
+  'Kalam': 4,
+  'Gloria Hallelujah': 4,
+  'Reenie Beanie': 5,
+  'Nothing You Could Do': 5,
+  'Marck Script': 4,
+  'Rock Salt': 6,
+  'Cedarville Cursive': 5,
+  'Just Another Hand': 6,
+  'Nanum Pen Script': 5,
+};
+
+/**
+ * Computes the total vertical shift needed to position words on the line space
+ * right above the bottom line for any font, font size, and line height.
+ */
+export function getComputedBaselineShift(
+  font: HandwritingFont,
+  fontSize: number,
+  lineHeight: number,
+  userOffset: number = 0
+): number {
+  const base = FONT_BASELINE_OFFSETS[font] ?? 5;
+  // Account for font-size vs default 20px leading
+  const sizeAdjustment = (20 - fontSize) * 0.35;
+  // Account for line-height vs default 32px
+  const lineAdjustment = (lineHeight - 32) * 0.45;
+  return Math.round(base + sizeAdjustment + lineAdjustment + userOffset);
+}
+
 export interface PaperOption {
   id: PaperType;
   name: string;
@@ -82,6 +122,7 @@ export const DEFAULT_SETTINGS: HandwritingSettings = {
   showPageNumbers: true,
   pageNumberStyle: 'page-x',
   slant: 0,
+  baselineOffset: 0,
 };
 
 // Dimensions in pixels for standard screen rendering (exact 1:1.414 ratio for A4)

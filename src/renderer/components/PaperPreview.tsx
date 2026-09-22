@@ -1,13 +1,11 @@
 import React, { useRef } from 'react';
 import { HandwritingSettings } from '../types';
-import { PAGE_DIMENSIONS } from '../utils/paperStyles';
+import { PAGE_DIMENSIONS, getComputedBaselineShift } from '../utils/paperStyles';
 import { parseMarkdownToHtml } from '../utils/markdownParser';
 import { 
   ZoomIn, 
   ZoomOut, 
   Maximize2, 
-  ChevronLeft, 
-  ChevronRight,
   FileText
 } from 'lucide-react';
 
@@ -35,6 +33,15 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
   // Jitter class
   const jitterClass = settings.jitter !== 'none' ? `jitter-${settings.jitter}` : '';
 
+  // Calculate font baseline shift to place words comfortably in the line space
+  // resting right above the bottom ruled line
+  const computedBaselineShift = getComputedBaselineShift(
+    settings.font,
+    settings.fontSize,
+    settings.lineHeight,
+    settings.baselineOffset || 0
+  );
+
   const handleZoomIn = () => {
     setZoom((z) => Math.min(200, z + 15));
   };
@@ -53,6 +60,9 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
       pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  // Vertical rhythm: start text at an exact integer multiple of lineHeight
+  const topPadding = settings.showHeader ? settings.lineHeight : settings.lineHeight * 2;
 
   return (
     <div className="preview-pane">
@@ -165,6 +175,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                   ['--font-size' as any]: `${settings.fontSize}px`,
                   ['--ink-color' as any]: settings.paperType === 'chalkboard' ? '#f8fafc' : settings.inkColor,
                   ['--margin-left' as any]: `${settings.marginLineWidth}px`,
+                  ['--baseline-shift' as any]: `${computedBaselineShift}px`,
                 }}
               >
                 {/* 3 Left Binder Punch Holes */}
@@ -182,8 +193,8 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                 {/* Paper Content Wrapper with Margins */}
                 <div
                   style={{
-                    paddingTop: '36px',
-                    paddingBottom: '48px',
+                    paddingTop: `${topPadding}px`,
+                    paddingBottom: `${settings.lineHeight * 2}px`,
                     paddingLeft: `${settings.marginLineWidth + (settings.showHoles ? 24 : 16)}px`,
                     paddingRight: '42px',
                     fontFamily: `"${settings.font}", cursive, sans-serif`,
@@ -198,12 +209,15 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'baseline',
-                        borderBottom: '1px solid currentColor',
-                        paddingBottom: '6px',
-                        marginBottom: `${settings.lineHeight * 0.8}px`,
+                        alignItems: 'flex-end',
+                        height: `${settings.lineHeight}px`,
+                        lineHeight: `${settings.lineHeight}px`,
+                        borderBottom: '1.5px solid currentColor',
+                        paddingBottom: '2px',
+                        marginBottom: `${settings.lineHeight}px`,
+                        boxSizing: 'border-box',
                         opacity: 0.82,
-                        fontSize: `${settings.fontSize * 0.85}px`,
+                        fontSize: `${settings.fontSize * 0.82}px`,
                       }}
                     >
                       <div style={{ fontWeight: 600 }}>
@@ -236,7 +250,8 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                   {!settings.showHeader && settings.showPageNumbers && (
                     <div
                       style={{
-                        marginTop: `${settings.lineHeight}px`,
+                        height: `${settings.lineHeight}px`,
+                        lineHeight: `${settings.lineHeight}px`,
                         textAlign: 'right',
                         opacity: 0.75,
                         fontSize: `${settings.fontSize * 0.8}px`,

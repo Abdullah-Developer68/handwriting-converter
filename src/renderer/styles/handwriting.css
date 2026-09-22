@@ -1,12 +1,13 @@
 /* ==========================================================================
-   Handwriting & Paper Realism Stylesheet
+   Handwriting & Paper Realism Stylesheet with Strict Line Grid Alignment
    ========================================================================== */
 
 :root {
   --line-height: 32px;
-  --font-size: 19px;
+  --font-size: 20px;
   --ink-color: #1e3a8a;
   --margin-left: 70px;
+  --baseline-shift: 5px;
 }
 
 /* Base Paper Container */
@@ -21,7 +22,7 @@
   overflow: hidden;
 }
 
-/* Paper Types */
+/* Paper Types - strictly aligned to var(--line-height) grid */
 /* 1. Classic Ruled */
 .paper-sheet.paper-ruled {
   background-color: #fdfbf7;
@@ -29,13 +30,14 @@
     to bottom,
     transparent,
     transparent calc(var(--line-height) - 1px),
-    rgba(147, 197, 253, 0.6) calc(var(--line-height) - 1px),
-    rgba(147, 197, 253, 0.6) var(--line-height)
+    rgba(147, 197, 253, 0.65) calc(var(--line-height) - 1px),
+    rgba(147, 197, 253, 0.65) var(--line-height)
   );
-  background-attachment: local;
+  background-size: 100% var(--line-height);
+  background-position: 0 0;
 }
 
-/* 2. College Ruled (Crisper lines, slightly cooler paper) */
+/* 2. College Ruled (Crisper narrow lines) */
 .paper-sheet.paper-college {
   background-color: #fafbfc;
   background-image: repeating-linear-gradient(
@@ -45,7 +47,8 @@
     rgba(186, 215, 248, 0.75) calc(var(--line-height) - 1px),
     rgba(186, 215, 248, 0.75) var(--line-height)
   );
-  background-attachment: local;
+  background-size: 100% var(--line-height);
+  background-position: 0 0;
 }
 
 /* 3. Grid / Graph Paper */
@@ -54,14 +57,16 @@
   background-size: var(--line-height) var(--line-height);
   background-image: 
     linear-gradient(to right, rgba(165, 180, 252, 0.35) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(165, 180, 252, 0.35) 1px, transparent 1px);
+    linear-gradient(to bottom, transparent calc(var(--line-height) - 1px), rgba(165, 180, 252, 0.35) calc(var(--line-height) - 1px));
+  background-position: 0 0;
 }
 
 /* 4. Dotted Bullet Journal */
 .paper-sheet.paper-dots {
   background-color: #fcfbf9;
   background-size: var(--line-height) var(--line-height);
-  background-image: radial-gradient(rgba(100, 116, 139, 0.45) 1.5px, transparent 1.5px);
+  background-image: radial-gradient(circle at 100% 100%, rgba(100, 116, 139, 0.5) 1.5px, transparent 1.5px);
+  background-position: 0 0;
 }
 
 /* 5. Yellow Legal Pad */
@@ -71,9 +76,11 @@
     to bottom,
     transparent,
     transparent calc(var(--line-height) - 1px),
-    rgba(156, 163, 175, 0.5) calc(var(--line-height) - 1px),
-    rgba(156, 163, 175, 0.5) var(--line-height)
+    rgba(156, 163, 175, 0.55) calc(var(--line-height) - 1px),
+    rgba(156, 163, 175, 0.55) var(--line-height)
   );
+  background-size: 100% var(--line-height);
+  background-position: 0 0;
 }
 
 /* 6. Vintage Parchment */
@@ -85,9 +92,11 @@
       to bottom,
       transparent,
       transparent calc(var(--line-height) - 1px),
-      rgba(180, 140, 100, 0.3) calc(var(--line-height) - 1px),
-      rgba(180, 140, 100, 0.3) var(--line-height)
+      rgba(180, 140, 100, 0.35) calc(var(--line-height) - 1px),
+      rgba(180, 140, 100, 0.35) var(--line-height)
     );
+  background-size: 100% 100%, 100% var(--line-height);
+  background-position: 0 0, 0 0;
 }
 
 /* 7. Clean Blank Paper */
@@ -104,9 +113,11 @@
     to bottom,
     transparent,
     transparent calc(var(--line-height) - 1px),
-    rgba(255, 255, 255, 0.12) calc(var(--line-height) - 1px),
-    rgba(255, 255, 255, 0.12) var(--line-height)
+    rgba(255, 255, 255, 0.14) calc(var(--line-height) - 1px),
+    rgba(255, 255, 255, 0.14) var(--line-height)
   );
+  background-size: 100% var(--line-height);
+  background-position: 0 0;
 }
 
 /* Vertical Margin Line (Red margin) */
@@ -154,74 +165,99 @@
   filter: url(#handwriting-jitter-strong);
 }
 
-/* Handwriting Typography Rendering */
+/* ==========================================================================
+   Handwriting Typography Rendering & Strict Vertical Rhythm
+   Every line sits between the ruled lines, resting a bit above bottom line.
+   ========================================================================== */
+
 .handwriting-content {
   font-size: var(--font-size);
   line-height: var(--line-height);
   color: var(--ink-color);
   word-break: break-word;
+  transform: translateY(var(--baseline-shift, 5px));
 }
 
-.handwriting-content h1,
-.handwriting-content h2,
-.handwriting-content h3,
-.handwriting-content h4,
-.handwriting-content p,
-.handwriting-content ul,
-.handwriting-content ol,
-.handwriting-content blockquote,
-.handwriting-content table {
-  margin-top: 0;
+.handwriting-content p {
+  margin: 0;
   margin-bottom: var(--line-height);
+  line-height: var(--line-height);
 }
 
-/* Heading Sizes */
+/* Headings calibrated to exact line height intervals */
 .handwriting-content h1 {
-  font-size: 1.85em;
-  line-height: calc(var(--line-height) * 1.5);
+  font-size: calc(var(--font-size) * 1.5);
+  line-height: calc(var(--line-height) * 2);
+  height: calc(var(--line-height) * 2);
+  min-height: calc(var(--line-height) * 2);
   font-weight: 700;
   border-bottom: 2px solid currentColor;
-  padding-bottom: 4px;
+  margin: 0;
   margin-bottom: var(--line-height);
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 3px;
 }
 
 .handwriting-content h2 {
-  font-size: 1.45em;
-  line-height: calc(var(--line-height) * 1.25);
+  font-size: calc(var(--font-size) * 1.25);
+  line-height: var(--line-height);
+  height: var(--line-height);
   font-weight: 600;
   border-bottom: 1.5px dashed currentColor;
+  box-sizing: border-box;
+  margin: 0;
+  margin-top: var(--line-height);
+  margin-bottom: var(--line-height);
+  display: flex;
+  align-items: flex-end;
   padding-bottom: 2px;
-  margin-top: calc(var(--line-height) * 0.5);
 }
 
 .handwriting-content h3 {
-  font-size: 1.2em;
+  font-size: calc(var(--font-size) * 1.1);
   line-height: var(--line-height);
   font-weight: 600;
+  margin: 0;
+  margin-bottom: var(--line-height);
 }
 
+/* Blockquotes */
 .handwriting-content blockquote {
+  margin: 0;
+  margin-bottom: var(--line-height);
   padding-left: 16px;
   border-left: 3px solid currentColor;
   opacity: 0.9;
   font-style: italic;
+  line-height: var(--line-height);
 }
 
+.handwriting-content blockquote p {
+  margin-bottom: 0;
+}
+
+/* Lists and Checklist items */
 .handwriting-content ul,
 .handwriting-content ol {
+  margin: 0;
+  margin-bottom: var(--line-height);
   padding-left: 28px;
 }
 
 .handwriting-content li {
   line-height: var(--line-height);
-  margin-bottom: 4px;
+  margin: 0;
+  padding: 0;
 }
 
-/* Handwritten Checkboxes */
 .handwriting-content .task-list-item {
   list-style-type: none;
   position: relative;
-  padding-left: 4px;
+  padding-left: 0;
+  line-height: var(--line-height);
+  margin: 0;
 }
 
 .handwriting-content .handwritten-checkbox {
@@ -231,15 +267,15 @@
   border: 1.5px solid currentColor;
   border-radius: 3px;
   margin-right: 8px;
-  vertical-align: middle;
+  vertical-align: -2px;
   position: relative;
-  top: -1px;
+  box-sizing: border-box;
 }
 
 .handwriting-content .handwritten-checkbox.checked::after {
   content: "✓";
   position: absolute;
-  top: -5px;
+  top: -6px;
   left: 1px;
   font-size: 16px;
   font-weight: bold;
@@ -250,14 +286,19 @@
 .handwriting-content table {
   width: 100%;
   border-collapse: collapse;
-  margin: var(--line-height) 0;
+  margin: 0;
+  margin-bottom: var(--line-height);
 }
 
 .handwriting-content th,
 .handwriting-content td {
   border: 1.5px solid currentColor;
-  padding: 6px 12px;
+  padding: 0 10px;
+  height: var(--line-height);
+  line-height: var(--line-height);
+  box-sizing: border-box;
   text-align: left;
+  vertical-align: middle;
 }
 
 .handwriting-content th {
@@ -265,25 +306,39 @@
   font-weight: bold;
 }
 
+/* Horizontal Rule Divider */
+.handwriting-content hr {
+  border: none;
+  border-bottom: 1.5px solid currentColor;
+  height: 0;
+  margin: 0;
+  margin-top: calc(var(--line-height) - 1.5px);
+  margin-bottom: var(--line-height);
+  opacity: 0.5;
+}
+
 /* Code Snippets (neatly boxed handwritten code) */
 .handwriting-content pre {
   background-color: rgba(0, 0, 0, 0.05);
-  border: 1.5px dashed currentColor;
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin: var(--line-height) 0;
-  white-space: pre-wrap;
+  border: 1px dashed currentColor;
+  border-radius: 4px;
+  padding: 0 12px;
+  margin: 0;
+  margin-bottom: var(--line-height);
+  line-height: var(--line-height);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.85em;
-  line-height: 1.4;
+  box-sizing: border-box;
+  white-space: pre-wrap;
 }
 
 .handwriting-content code {
   font-family: 'JetBrains Mono', monospace;
   background-color: rgba(0, 0, 0, 0.06);
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: 0px 4px;
+  border-radius: 3px;
   font-size: 0.9em;
+  vertical-align: baseline;
 }
 
 /* Highlighter markup */

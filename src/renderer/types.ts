@@ -52,6 +52,7 @@ export interface HandwritingSettings {
   showPageNumbers: boolean;
   pageNumberStyle: 'page-x' | 'x-of-y' | 'number-only';
   slant: number; // deg slant -5 to +15 deg
+  baselineOffset: number; // px vertical shift to sit right above ruled line
 }
 
 export interface PdfExportOptions {
