@@ -5,8 +5,7 @@ import { parseMarkdownToHtml } from '../utils/markdownParser';
 import { 
   ZoomIn, 
   ZoomOut, 
-  Maximize2, 
-  FileText
+  Maximize2
 } from 'lucide-react';
 
 interface PaperPreviewProps {
@@ -62,26 +61,16 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
   };
 
   // Vertical rhythm: start text at an exact integer multiple of lineHeight
-  const topPadding = settings.showHeader ? settings.lineHeight : settings.lineHeight * 2;
+  const topPadding = settings.lineHeight;
 
   return (
     <div className="preview-pane">
       {/* Zoom and Page Nav Toolbar */}
       <div className="preview-toolbar no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#d4d4d8' }}>
-            <FileText size={15} color="#6366f1" />
-            <span style={{ fontWeight: 600 }}>
-              {pages.length} {pages.length === 1 ? 'Sheet' : 'Sheets'}
-            </span>
-            <span style={{ color: '#71717a', fontSize: '12px' }}>
-              ({settings.pageSize} • {settings.paperType})
-            </span>
-          </div>
-
           {pages.length > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '12px' }}>
-              <span style={{ fontSize: '12px', color: '#a1a1aa' }}>Jump:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '12px', color: '#a1a1aa' }}>Page:</span>
               {pages.map((_, idx) => (
                 <button
                   key={idx}
@@ -159,8 +148,6 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
         >
           {pages.map((pageMarkdown, index) => {
             const pageHtml = parseMarkdownToHtml(pageMarkdown);
-            const pageNum = index + 1;
-            const totalPages = pages.length;
 
             return (
               <div
@@ -203,63 +190,11 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                     transform: settings.slant !== 0 ? `skewX(${settings.slant}deg)` : undefined,
                   }}
                 >
-                  {/* Top Header / Notebook Meta */}
-                  {settings.showHeader && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-end',
-                        height: `${settings.lineHeight}px`,
-                        lineHeight: `${settings.lineHeight}px`,
-                        borderBottom: '1.5px solid currentColor',
-                        paddingBottom: '2px',
-                        marginBottom: `${settings.lineHeight}px`,
-                        boxSizing: 'border-box',
-                        opacity: 0.82,
-                        fontSize: `${settings.fontSize * 0.82}px`,
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>
-                        {settings.headerSubject || 'Notes'}
-                      </div>
-                      <div style={{ display: 'flex', gap: '20px' }}>
-                        {settings.headerDate && (
-                          <span>
-                            <strong>Date:</strong> {settings.headerDate}
-                          </span>
-                        )}
-                        {settings.showPageNumbers && (
-                          <span>
-                            {settings.pageNumberStyle === 'x-of-y' && `Page ${pageNum} of ${totalPages}`}
-                            {settings.pageNumberStyle === 'page-x' && `Page ${pageNum}`}
-                            {settings.pageNumberStyle === 'number-only' && `${pageNum}`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Rendered Markdown Body */}
                   <div
                     className={`handwriting-content ${penClass} ${jitterClass}`}
                     dangerouslySetInnerHTML={{ __html: pageHtml }}
                   />
-
-                  {/* Bottom Page Number if Header is disabled */}
-                  {!settings.showHeader && settings.showPageNumbers && (
-                    <div
-                      style={{
-                        height: `${settings.lineHeight}px`,
-                        lineHeight: `${settings.lineHeight}px`,
-                        textAlign: 'right',
-                        opacity: 0.75,
-                        fontSize: `${settings.fontSize * 0.8}px`,
-                      }}
-                    >
-                      - {pageNum} -
-                    </div>
-                  )}
                 </div>
               </div>
             );

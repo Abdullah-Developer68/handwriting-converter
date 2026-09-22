@@ -359,26 +359,6 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange }
               onChange={(e) => onChange({ showHoles: e.target.checked })}
             />
           </label>
-
-          {/* Header (Date / Subject) */}
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#d4d4d8', cursor: 'pointer' }}>
-            <span>Date & Subject Header</span>
-            <input
-              type="checkbox"
-              checked={settings.showHeader}
-              onChange={(e) => onChange({ showHeader: e.target.checked })}
-            />
-          </label>
-
-          {/* Page Numbers */}
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#d4d4d8', cursor: 'pointer' }}>
-            <span>Page Numbers</span>
-            <input
-              type="checkbox"
-              checked={settings.showPageNumbers}
-              onChange={(e) => onChange({ showPageNumbers: e.target.checked })}
-            />
-          </label>
         </div>
       </div>
     </div>
