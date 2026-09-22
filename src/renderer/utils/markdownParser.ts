@@ -1,4 +1,6 @@
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+import { PAGEBREAK_REGEX } from '../types';
 
 /**
  * Custom renderer extensions for marked to support handwriting-specific styles
@@ -124,10 +126,7 @@ export function splitMarkdownIntoPages(
     return [''];
   }
 
-  // Explicit page break regex
-  const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|\[pagebreak\]|===page===|\\pagebreak|---page---)/gi;
-
-  const rawSections = markdown.split(explicitBreakRegex);
+  const rawSections = markdown.split(PAGEBREAK_REGEX);
   const finalPages: string[] = [];
 
   for (const section of rawSections) {
@@ -210,10 +209,16 @@ export function splitMarkdownIntoPages(
 }
 
 /**
- * Parses markdown to HTML string with custom styling hooks
+ * Parses markdown to HTML string with custom styling hooks and XSS sanitization
  */
 export function parseMarkdownToHtml(markdownText: string): string {
   const preprocessed = preprocessMarkdown(markdownText);
-  const parsed = marked.parse(preprocessed);
-  return typeof parsed === 'string' ? parsed : '';
+  const parsed = marked.parse(preprocessed, { async: false });
+  const rawHtml = typeof parsed === 'string' ? parsed : '';
+
+  return DOMPurify.sanitize(rawHtml, {
+    ADD_TAGS: ['mark'],
+    ADD_ATTR: ['class', 'target'],
+  });
 }
+

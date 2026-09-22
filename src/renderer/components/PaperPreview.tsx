@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { HandwritingSettings } from '../types';
 import { PAGE_DIMENSIONS, getComputedBaselineShift } from '../utils/paperStyles';
 import { parseMarkdownToHtml } from '../utils/markdownParser';
@@ -120,13 +120,20 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
   const lineHeight = settings?.lineHeight || 32;
   const topPadding = lineHeight;
 
+  const renderedPages = useMemo(() => {
+    return pages.map((pageMarkdown) => ({
+      markdown: pageMarkdown,
+      html: parseMarkdownToHtml(pageMarkdown),
+      isVisualEmbed: pageMarkdown.includes('visual-page-embed'),
+    }));
+  }, [pages]);
+
   return (
     <div className="preview-pane">
       {/* Zoom and Page Nav Toolbar */}
       <div className="preview-toolbar no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-          {
-          pages.length > 1 && (
+          {pages.length > 1 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -142,6 +149,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                   key={idx}
                   onClick={() => scrollToPage(idx)}
                   className="btn btn-ghost btn-sm"
+                  aria-label={`Scroll to page ${idx + 1}`}
                   style={{
                     padding: '2px 7px',
                     fontSize: '11px',
@@ -163,6 +171,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={handleZoomOut}
             title="Zoom Out (Ctrl -)"
+            aria-label="Zoom Out"
             style={{ padding: '4px 6px' }}
           >
             <ZoomOut size={14} />
@@ -172,6 +181,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={handleFitZoom}
             title="Fit page to view width"
+            aria-label="Fit to width"
             style={{ fontSize: '11px', padding: '2px 8px', color: '#38bdf8', fontWeight: 600 }}
           >
             Fit
@@ -181,6 +191,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={handleResetZoom}
             title="Reset Zoom to 100%"
+            aria-label="Reset zoom to 100%"
             style={{ fontSize: '11px', minWidth: '42px', padding: '4px' }}
           >
             {activeZoom}%
@@ -190,6 +201,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={handleZoomIn}
             title="Zoom In (Ctrl +)"
+            aria-label="Zoom In"
             style={{ padding: '4px 6px' }}
           >
             <ZoomIn size={14} />
@@ -211,13 +223,10 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
             alignItems: 'center',
           }}
         >
-          {pages.map((pageMarkdown, pageIndex) => {
-            const pageHtml = parseMarkdownToHtml(pageMarkdown);
-            const isVisualEmbed = pageMarkdown.includes('visual-page-embed');
-
+          {renderedPages.map(({ markdown: pageMarkdown, html: pageHtml, isVisualEmbed }, pageIndex) => {
             return (
               <div
-                key={pageIndex}
+                key={`paper-page-${pageIndex}-${pageMarkdown.slice(0, 32)}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -261,6 +270,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                       className="btn btn-ghost btn-sm"
                       style={{ padding: '2px 8px', height: '22px', fontSize: '11px', color: '#f87171' }}
                       title={`Delete Page ${pageIndex + 1}`}
+                      aria-label={`Delete Page ${pageIndex + 1}`}
                     >
                       <Trash2 size={12} style={{ marginRight: '4px' }} />
                       <span>Delete Page</span>
@@ -293,11 +303,11 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
 
                   {/* Binder Punch Holes */}
                   {settings?.showHoles && (
-                    <div className="paper-holes">
-                      <div className="paper-hole" />
-                      <div className="paper-hole" />
-                      <div className="paper-hole" />
-                    </div>
+                    <>
+                      <div className="paper-hole-punch top" />
+                      <div className="paper-hole-punch middle" />
+                      <div className="paper-hole-punch bottom" />
+                    </>
                   )}
 
                   {/* Header (Date & Subject) */}
@@ -320,7 +330,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
 
                   {/* Handwritten Content Area */}
                   <div
-                    className="paper-content"
+                    className="paper-content handwriting-content"
                     style={{
                       paddingTop: `${topPadding}px`,
                       paddingLeft: settings?.showMarginLine ? `${(settings?.marginLineWidth || 80) + 16}px` : '48px',

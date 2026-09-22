@@ -28,6 +28,7 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange, 
             className="btn btn-ghost btn-sm"
             onClick={onClose}
             title="Close Styles Sidebar"
+            aria-label="Close Styles Sidebar"
             style={{ padding: '2px 6px', height: '22px' }}
           >
             <X size={14} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HandwritingSettings, PdfExportOptions } from '../types';
 import { Download, Printer, X, CheckCircle, AlertCircle, FolderOpen, Loader2 } from 'lucide-react';
 
@@ -15,10 +15,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   settings,
   pageCount,
 }) => {
-  const [pageSize, setPageSize] = useState<'A4' | 'Letter'>(settings.pageSize);
+  const [pageSize, setPageSize] = useState<'A4' | 'Letter'>(settings.pageSize === 'Letter' ? 'Letter' : 'A4');
   const [landscape, setLandscape] = useState(settings.orientation === 'landscape');
   const [isExporting, setIsExporting] = useState(false);
   const [exportResult, setExportResult] = useState<{ success: boolean; path?: string; error?: string } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPageSize(settings.pageSize === 'Letter' ? 'Letter' : 'A4');
+      setLandscape(settings.orientation === 'landscape');
+      setExportResult(null);
+      setIsExporting(false);
+    }
+  }, [isOpen, settings.pageSize, settings.orientation]);
 
   if (!isOpen) return null;
 

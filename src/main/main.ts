@@ -21,6 +21,8 @@ if (typeof electron === 'string' || !(electron as any).app) {
   runElectronApp();
 }
 
+const PAGEBREAK_REGEX = /(?:<!--\s*pagebreak\s*-->|\[pagebreak\]|===page===|\\pagebreak|---page---)/i;
+
 async function parseDocumentData(buffer: Buffer, filename: string): Promise<any> {
   const ext = path.extname(filename).toLowerCase();
 
@@ -92,12 +94,11 @@ async function parseDocumentData(buffer: Buffer, filename: string): Promise<any>
       const markdown = (result.value || '').trim();
 
       // Split into sections or discrete pages
-      const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
-      let rawPages = markdown.split(explicitBreakRegex).map((s: string) => s.trim()).filter(Boolean);
+      let rawPages = markdown.split(PAGEBREAK_REGEX).map((s: string) => s.trim()).filter(Boolean);
 
       // If only 1 section and long, split by headings (H1 or H2)
       if (rawPages.length <= 1 && markdown.length > 2000) {
-        const headerParts = markdown.split(/(?=^#{1,2}\\s)/m).map((s: string) => s.trim()).filter(Boolean);
+        const headerParts = markdown.split(/(?=^#{1,2}\s)/m).map((s: string) => s.trim()).filter(Boolean);
         if (headerParts.length > 1) {
           rawPages = headerParts;
         }
@@ -128,8 +129,7 @@ async function parseDocumentData(buffer: Buffer, filename: string): Promise<any>
 
   // Plain text or Markdown
   const text = buffer.toString('utf-8').trim();
-  const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
-  let rawPages = text.split(explicitBreakRegex).map((s: string) => s.trim()).filter(Boolean);
+  let rawPages = text.split(PAGEBREAK_REGEX).map((s: string) => s.trim()).filter(Boolean);
   if (rawPages.length === 0) rawPages = [text];
 
   const pages = rawPages.map((pageText: string, idx: number) => ({
@@ -169,7 +169,7 @@ function runElectronApp() {
     app.commandLine.appendSwitch('disable-features', 'Vulkan');
   }
 
-  let mainWindow: any = null;
+  let mainWindow: electron.BrowserWindow | null = null;
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
   function createWindow() {
@@ -184,7 +184,7 @@ function runElectronApp() {
         preload: path.join(__dirname, '../preload/preload.js'),
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: false,
+        sandbox: true,
         webSecurity: true,
         allowRunningInsecureContent: false,
       },

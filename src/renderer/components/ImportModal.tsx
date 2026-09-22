@@ -120,7 +120,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   };
 
   const handleNativeOpenDialog = async () => {
-    if (!window.electronAPI?.openDocumentDialog) {
+    if (!window.electronAPI?.importDocument) {
       handlePickFile();
       return;
     }
@@ -129,7 +129,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const parsed = await window.electronAPI.openDocumentDialog();
+      const parsed = await window.electronAPI.importDocument();
       if (parsed) {
         setDocumentData(parsed);
         const allNums = parsed.pages.map((p) => p.pageNumber);

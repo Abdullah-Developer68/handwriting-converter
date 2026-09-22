@@ -9,8 +9,37 @@ export type PenThickness = 'fine' | 'regular' | 'medium' | 'bold';
 export type JitterIntensity = 'none' | 'subtle' | 'medium' | 'strong';
 export type PageNumberStyle = 'x-of-y' | 'number-only' | 'page-x';
 
+export type HandwritingFont =
+  | 'Caveat'
+  | 'Patrick Hand'
+  | 'Shadows Into Light'
+  | 'Indie Flower'
+  | 'Homemade Apple'
+  | 'Architects Daughter'
+  | 'Kalam'
+  | 'Cedarville Cursive'
+  | 'Marck Script'
+  | 'Gloria Hallelujah'
+  | 'Reenie Beanie'
+  | 'Nothing You Could Do'
+  | 'Rock Salt'
+  | 'Just Another Hand'
+  | 'Nanum Pen Script';
+
+export type PaperType =
+  | 'ruled'
+  | 'college'
+  | 'grid'
+  | 'dots'
+  | 'legal'
+  | 'parchment'
+  | 'blank'
+  | 'chalkboard';
+
+export const PAGEBREAK_REGEX = /(?:<!--\s*pagebreak\s*-->|\[pagebreak\]|===page===|\\pagebreak|---page---)/i;
+
 export interface HandwritingSettings {
-  font: string;
+  font: HandwritingFont | string;
   fontSize: number;
   lineHeight: number;
   letterSpacing: number;
@@ -20,7 +49,7 @@ export interface HandwritingSettings {
   jitter: JitterIntensity;
   slant: number;
   baselineOffset: number;
-  paperType: string;
+  paperType: PaperType | string;
   paperColor?: string;
   showMarginLine: boolean;
   marginLineWidth: number;
@@ -34,10 +63,22 @@ export interface HandwritingSettings {
   orientation: PageOrientation;
 }
 
+export type TemplateCategory =
+  | 'academic'
+  | 'creative'
+  | 'technical'
+  | 'meeting'
+  | 'letter'
+  | 'Education'
+  | 'Business'
+  | 'Personal'
+  | 'Culinary'
+  | 'Engineering';
+
 export interface SampleTemplate {
   id: string;
   title: string;
-  category: 'academic' | 'creative' | 'technical' | 'meeting' | 'letter';
+  category: TemplateCategory;
   description: string;
   markdown: string;
   recommendedSettings: Partial<HandwritingSettings>;

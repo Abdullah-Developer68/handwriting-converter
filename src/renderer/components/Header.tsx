@@ -87,6 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
           className={`btn btn-sm ${viewMode === 'editor' ? 'btn-secondary' : 'btn-ghost'}`}
           onClick={() => changeViewMode('editor')}
           title="Editor only"
+          aria-label="Switch to editor only view"
         >
           <Edit3 size={14} />
           <span className="view-mode-label">Editor</span>
@@ -95,6 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
           className={`btn btn-sm ${viewMode === 'split' ? 'btn-secondary' : 'btn-ghost'}`}
           onClick={() => changeViewMode('split')}
           title="Split view (Editor + Handwritten Preview)"
+          aria-label="Switch to split view"
         >
           <Columns size={14} />
           <span className="view-mode-label">Split</span>
@@ -103,6 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
           className={`btn btn-sm ${viewMode === 'preview' ? 'btn-secondary' : 'btn-ghost'}`}
           onClick={() => changeViewMode('preview')}
           title="Preview only"
+          aria-label="Switch to preview only view"
         >
           <Eye size={14} />
           <span className="view-mode-label">Paper</span>
@@ -116,6 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
             className={`btn btn-sm ${isSidebarOpen ? 'btn-secondary active-sidebar-btn' : 'btn-ghost'}`}
             onClick={onToggleSidebar}
             title={isSidebarOpen ? "Hide Stationery & Style Sidebar" : "Show Stationery & Style Sidebar"}
+            aria-label={isSidebarOpen ? "Hide Styles Sidebar" : "Show Styles Sidebar"}
           >
             <Palette size={14} color="#a855f7" />
             <span className="header-btn-label">Styles</span>
@@ -126,6 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="btn btn-secondary btn-sm"
           onClick={onOpenTemplates}
           title="Browse Sample Templates"
+          aria-label="Browse Sample Templates"
         >
           <BookOpen size={14} color="#a855f7" />
           <span className="header-btn-label">Templates</span>
@@ -136,6 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="btn btn-secondary btn-sm"
           onClick={onOpenImport}
           title="Insert pages from PDF or Word (.docx) into your content"
+          aria-label="Insert pages from document"
         >
           <FileDown size={14} color="#38bdf8" />
           <span className="header-btn-label">Insert Pages</span>
@@ -147,6 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={onDeletePageClick}
             title="Delete a page from your content"
+            aria-label="Delete a page from your content"
             style={{ color: '#f87171' }}
           >
             <Trash2 size={14} />
@@ -158,6 +165,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="btn btn-secondary btn-sm"
           onClick={onOpenFile}
           title="Open Markdown File"
+          aria-label="Open Markdown File"
         >
           <FolderOpen size={14} />
           <span className="header-btn-label">Open</span>
@@ -167,6 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="btn btn-secondary btn-sm"
           onClick={onSaveFile}
           title="Save Markdown File"
+          aria-label="Save Markdown File"
         >
           <Save size={14} />
           <span className="header-btn-label">Save</span>
@@ -176,6 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="btn btn-primary btn-sm btn-export"
           onClick={onExportPdf}
           title="Export Handwritten Notes to PDF"
+          aria-label="Export Handwritten Notes to PDF"
           style={{ fontWeight: 600 }}
         >
           <Download size={14} />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { SAMPLE_TEMPLATES } from '../utils/defaultTemplates';
-import { SampleTemplate, HandwritingSettings } from '../types';
-import { BookOpen, X, Sparkles, Check } from 'lucide-react';
+import { SampleTemplate } from '../types';
+import { BookOpen, X, Sparkles } from 'lucide-react';
 
 interface TemplatesModalProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export const TemplatesModal: React.FC<TemplatesModalProps> = ({
               Sample Markdown Notes & Templates
             </h2>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ padding: '4px' }}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close templates modal" style={{ padding: '4px' }}>
             <X size={18} />
           </button>
         </div>

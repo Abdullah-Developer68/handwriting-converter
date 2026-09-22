@@ -6,34 +6,9 @@ import { StyleToolbar } from './components/StyleToolbar';
 import { TemplatesModal } from './components/TemplatesModal';
 import { ExportModal } from './components/ExportModal';
 import { ImportModal } from './components/ImportModal';
-import { HandwritingSettings, SampleTemplate, InsertionConfig } from './types';
+import { HandwritingSettings, SampleTemplate, InsertionConfig, PAGEBREAK_REGEX } from './types';
 import { splitMarkdownIntoPages } from './utils/markdownParser';
-import { PAGE_DIMENSIONS } from './utils/paperStyles';
-
-const DEFAULT_SETTINGS: HandwritingSettings = {
-  font: 'Caveat',
-  fontSize: 20,
-  lineHeight: 32,
-  letterSpacing: 0.5,
-  wordSpacing: 1.5,
-  inkColor: '#1e3a8a',
-  paperType: 'ruled',
-  paperColor: '#fdfbf7',
-  pageSize: 'A4',
-  orientation: 'portrait',
-  penThickness: 'regular',
-  jitter: 'subtle',
-  slant: -0.5,
-  baselineOffset: 0,
-  showMarginLine: true,
-  marginLineWidth: 70,
-  showHoles: true,
-  showHeader: false,
-  headerDate: '',
-  headerSubject: '',
-  showPageNumbers: false,
-  pageNumberStyle: 'x-of-y',
-};
+import { DEFAULT_SETTINGS, getPageCapacity } from './utils/paperStyles';
 
 const DEFAULT_MARKDOWN = '';
 
@@ -55,9 +30,8 @@ export const App: React.FC = () => {
   // Compute pages based on settings and manual pagebreaks
   const pages = useMemo(() => {
     // Check for explicit manual pagebreaks first
-    const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
-    if (explicitBreakRegex.test(markdown)) {
-      return markdown.split(explicitBreakRegex).map((p) => p.trim()).filter(Boolean);
+    if (PAGEBREAK_REGEX.test(markdown)) {
+      return markdown.split(PAGEBREAK_REGEX).map((p) => p.trim()).filter(Boolean);
     }
 
     // Otherwise split logically based on line height and paper height
@@ -71,7 +45,7 @@ export const App: React.FC = () => {
     const file = await window.electronAPI.openFile();
     if (file) {
       setMarkdown(file.content);
-      setCurrentFileName(file.name);
+      setCurrentFileName(file.filename);
       setCurrentFilePath(file.path);
     }
   };
@@ -79,13 +53,14 @@ export const App: React.FC = () => {
   // Handle save file
   const handleSaveFile = async () => {
     if (!window.electronAPI) return;
-    const savedPath = await window.electronAPI.saveFile(markdown, currentFilePath || undefined);
-    if (savedPath) {
-      setCurrentFilePath(savedPath);
-      const name = savedPath.split('/').pop() || savedPath.split('\\').pop() || 'notes.md';
+    const result = await window.electronAPI.saveFile(markdown, currentFilePath || undefined);
+    if (result && result.success && result.path) {
+      setCurrentFilePath(result.path);
+      const name = result.path.split('/').pop() || result.path.split('\\').pop() || 'notes.md';
       setCurrentFileName(name);
     }
   };
+
 
   // File drag & drop onto editor / app
   const handleDropFile = (file: File) => {
@@ -144,8 +119,7 @@ export const App: React.FC = () => {
 
       // Option 3: At Specific Page Number (before or after)
       if (config.target === 'specific-page') {
-        const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
-        let existingPages = prev.split(explicitBreakRegex).map((s) => s.trim()).filter(Boolean);
+        let existingPages = prev.split(PAGEBREAK_REGEX).map((s) => s.trim()).filter(Boolean);
 
         // If no manual pagebreak exists yet and document is long, partition using splitMarkdownIntoPages
         if (existingPages.length <= 1) {
@@ -187,8 +161,7 @@ export const App: React.FC = () => {
   // Delete page from current content
   const handleDeletePage = (pageIndexToDelete: number) => {
     setMarkdown((prev) => {
-      const explicitBreakRegex = /(?:<!--\s*pagebreak\s*-->|===page===|\\pagebreak|---page---)/gi;
-      let existingPages = prev.split(explicitBreakRegex).map((s) => s.trim()).filter(Boolean);
+      let existingPages = prev.split(PAGEBREAK_REGEX).map((s) => s.trim()).filter(Boolean);
 
       // If no explicit breaks exist yet and document is long, partition using splitMarkdownIntoPages
       if (existingPages.length <= 1) {
@@ -265,7 +238,8 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [markdown, currentFileName]);
+  }, [markdown, currentFilePath, currentFileName]);
+
 
   return (
     <div className="app-layout">
@@ -319,7 +293,7 @@ export const App: React.FC = () => {
         {isSidebarOpen && (
           <StyleToolbar
             settings={settings}
-            onChange={setSettings}
+            onChange={(newSettings) => setSettings((prev) => ({ ...prev, ...newSettings }))}
             onClose={() => setIsSidebarOpen(false)}
           />
         )}

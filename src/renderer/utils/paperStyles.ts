@@ -52,12 +52,12 @@ export const FONT_BASELINE_OFFSETS: Record<HandwritingFont, number> = {
  * right above the bottom line for any font, font size, and line height.
  */
 export function getComputedBaselineShift(
-  font: HandwritingFont,
+  font: HandwritingFont | string,
   fontSize: number,
   lineHeight: number,
   userOffset: number = 0
 ): number {
-  const base = FONT_BASELINE_OFFSETS[font] ?? 5;
+  const base = (FONT_BASELINE_OFFSETS as Record<string, number>)[font] ?? 5;
   // Account for font-size vs default 20px leading
   const sizeAdjustment = (20 - fontSize) * 0.35;
   // Account for line-height vs default 32px
@@ -87,18 +87,19 @@ export const PAPER_TYPES: PaperOption[] = [
 export interface InkColorOption {
   name: string;
   hex: string;
+  color: string;
 }
 
 export const INK_COLORS: InkColorOption[] = [
-  { name: 'Royal Blue', hex: '#1e3a8a' },
-  { name: 'Classic Navy', hex: '#172554' },
-  { name: 'Gel Pen Black', hex: '#18181b' },
-  { name: 'Graphite Pencil', hex: '#4b5563' },
-  { name: 'Teacher Red', hex: '#b91c1c' },
-  { name: 'Forest Emerald', hex: '#065f46' },
-  { name: 'Royal Purple', hex: '#6b21a8' },
-  { name: 'Sepia Brown', hex: '#78350f' },
-  { name: 'Chalk White', hex: '#f8fafc' },
+  { name: 'Royal Blue', hex: '#1e3a8a', color: '#1e3a8a' },
+  { name: 'Classic Navy', hex: '#172554', color: '#172554' },
+  { name: 'Gel Pen Black', hex: '#18181b', color: '#18181b' },
+  { name: 'Graphite Pencil', hex: '#4b5563', color: '#4b5563' },
+  { name: 'Teacher Red', hex: '#b91c1c', color: '#b91c1c' },
+  { name: 'Forest Emerald', hex: '#065f46', color: '#065f46' },
+  { name: 'Royal Purple', hex: '#6b21a8', color: '#6b21a8' },
+  { name: 'Sepia Brown', hex: '#78350f', color: '#78350f' },
+  { name: 'Chalk White', hex: '#f8fafc', color: '#f8fafc' },
 ];
 
 export const DEFAULT_SETTINGS: HandwritingSettings = {
@@ -106,23 +107,24 @@ export const DEFAULT_SETTINGS: HandwritingSettings = {
   fontSize: 20,
   lineHeight: 32,
   letterSpacing: 0.5,
-  wordSpacing: 2,
+  wordSpacing: 1.5,
   inkColor: '#1e3a8a',
-  penThickness: 'regular',
   paperType: 'ruled',
-  jitter: 'subtle',
+  paperColor: '#fdfbf7',
   pageSize: 'A4',
   orientation: 'portrait',
+  penThickness: 'regular',
+  jitter: 'subtle',
+  slant: -0.5,
+  baselineOffset: 0,
   showMarginLine: true,
-  marginLineWidth: 75,
+  marginLineWidth: 70,
   showHoles: true,
   showHeader: false,
   headerDate: '',
   headerSubject: '',
   showPageNumbers: false,
-  pageNumberStyle: 'page-x',
-  slant: 0,
-  baselineOffset: 0,
+  pageNumberStyle: 'x-of-y',
 };
 
 // Dimensions in pixels for standard screen rendering (exact 1:1.414 ratio for A4)
@@ -136,3 +138,25 @@ export const PAGE_DIMENSIONS = {
     landscape: { width: 1056, height: 816 },
   },
 };
+
+/**
+ * Computes the page line capacity and characters per line based on paper settings.
+ */
+export function getPageCapacity(settings: HandwritingSettings): { maxLines: number; charsPerLine: number } {
+  const pageSize = settings?.pageSize && PAGE_DIMENSIONS[settings.pageSize] ? settings.pageSize : 'A4';
+  const orientation = settings?.orientation === 'landscape' ? 'landscape' : 'portrait';
+  const pageDims = PAGE_DIMENSIONS[pageSize][orientation];
+
+  const lineHeight = settings?.lineHeight || 32;
+  const availHeight = pageDims.height - (settings?.showHeader ? 120 : 80);
+  const maxLines = Math.max(16, Math.floor(availHeight / lineHeight));
+
+  const marginLeft = settings?.showMarginLine ? (settings?.marginLineWidth || 70) + 16 : 48;
+  const availWidth = pageDims.width - marginLeft - 48;
+  const fontSize = settings?.fontSize || 20;
+  const charWidth = Math.max(8, fontSize * 0.52);
+  const charsPerLine = Math.max(40, Math.floor(availWidth / charWidth));
+
+  return { maxLines, charsPerLine };
+}
+

@@ -82,6 +82,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('**', '**', 'bold text')}
             title="Bold (**text**)"
+            aria-label="Format Bold"
           >
             <Bold size={13} />
           </button>
@@ -89,6 +90,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('*', '*', 'italic text')}
             title="Italic (*text*)"
+            aria-label="Format Italic"
           >
             <Italic size={13} />
           </button>
@@ -96,6 +98,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('==', '==', 'highlighted text')}
             title="Handwritten Highlighter (==text==)"
+            aria-label="Handwritten Highlighter"
             style={{ color: '#facc15' }}
           >
             <Highlighter size={13} />
@@ -107,6 +110,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('# ', '', 'Heading 1')}
             title="Heading 1 (#)"
+            aria-label="Insert Heading 1"
           >
             <Heading1 size={14} />
           </button>
@@ -114,6 +118,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('## ', '', 'Heading 2')}
             title="Heading 2 (##)"
+            aria-label="Insert Heading 2"
           >
             <Heading2 size={14} />
           </button>
@@ -124,6 +129,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('- ', '', 'List item')}
             title="Bullet list (- )"
+            aria-label="Insert Bullet List"
           >
             <List size={13} />
           </button>
@@ -131,6 +137,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('- [ ] ', '', 'Task item')}
             title="Task list checkbox (- [ ])"
+            aria-label="Insert Task Checkbox"
           >
             <CheckSquare size={13} />
           </button>
@@ -138,6 +145,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('> ', '', 'Quote text')}
             title="Blockquote (> )"
+            aria-label="Insert Blockquote"
           >
             <Quote size={13} />
           </button>
@@ -148,6 +156,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('\n| Column 1 | Column 2 |\n| :--- | :--- |\n| Item 1 | Item 2 |\n')}
             title="Insert Table"
+            aria-label="Insert Table"
           >
             <Table size={13} />
           </button>
@@ -156,6 +165,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('\n\n<!-- pagebreak -->\n\n')}
             title="Insert Page Break (starts a new handwritten sheet)"
+            aria-label="Insert Page Break"
             style={{ color: '#a78bfa' }}
           >
             <Scissors size={13} />
@@ -169,6 +179,7 @@ export const Editor: React.FC<EditorProps> = ({
             className="btn btn-ghost btn-sm btn-import-toolbar"
             onClick={onOpenImport}
             title="Insert pages from PDF or Word (.docx) into your content"
+            aria-label="Insert pages from document"
           >
             <FileDown size={13} />
             <span className="editor-btn-label">Insert Pages</span>
