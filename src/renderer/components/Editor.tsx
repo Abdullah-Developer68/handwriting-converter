@@ -10,18 +10,30 @@ import {
   Highlighter, 
   Scissors, 
   Table, 
-  FileUp,
-  RotateCcw
+  FileUp, 
+  FileDown
 } from 'lucide-react';
 
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   onDropFile: (file: File) => void;
+  onCursorChange?: (pos: number) => void;
+  onOpenImport?: () => void;
 }
 
-export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) => {
+export const Editor: React.FC<EditorProps> = ({
+  value,
+  onChange,
+  onDropFile,
+  onCursorChange,
+  onOpenImport,
+}) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const updateCursor = (target: HTMLTextAreaElement) => {
+    onCursorChange?.(target.selectionStart);
+  };
 
   const insertTextAtCursor = (before: string, after: string = '', defaultMiddle: string = '') => {
     const textarea = textareaRef.current;
@@ -37,7 +49,9 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
 
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + before.length, start + before.length + selectedText.length);
+      const newPos = start + before.length + selectedText.length;
+      textarea.setSelectionRange(newPos, newPos);
+      onCursorChange?.(newPos);
     }, 10);
   };
 
@@ -58,12 +72,11 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
     <div className="editor-pane" onDragOver={handleDragOver} onDrop={handleDrop}>
       {/* Editor Sub-toolbar */}
       <div className="editor-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+        <div className="editor-toolbar-actions">
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('**', '**', 'bold text')}
             title="Bold (**text**)"
-            style={{ padding: '3px 6px' }}
           >
             <Bold size={13} />
           </button>
@@ -71,7 +84,6 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('*', '*', 'italic text')}
             title="Italic (*text*)"
-            style={{ padding: '3px 6px' }}
           >
             <Italic size={13} />
           </button>
@@ -79,18 +91,17 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('==', '==', 'highlighted text')}
             title="Handwritten Highlighter (==text==)"
-            style={{ padding: '3px 6px', color: '#facc15' }}
+            style={{ color: '#facc15' }}
           >
             <Highlighter size={13} />
           </button>
 
-          <div style={{ width: '1px', height: '14px', backgroundColor: '#3f3f46', margin: '0 3px' }} />
+          <div className="toolbar-divider" />
 
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('# ', '', 'Heading 1')}
             title="Heading 1 (#)"
-            style={{ padding: '3px 6px' }}
           >
             <Heading1 size={14} />
           </button>
@@ -98,18 +109,16 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('## ', '', 'Heading 2')}
             title="Heading 2 (##)"
-            style={{ padding: '3px 6px' }}
           >
             <Heading2 size={14} />
           </button>
 
-          <div style={{ width: '1px', height: '14px', backgroundColor: '#3f3f46', margin: '0 3px' }} />
+          <div className="toolbar-divider" />
 
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('- ', '', 'List item')}
             title="Bullet list (- )"
-            style={{ padding: '3px 6px' }}
           >
             <List size={13} />
           </button>
@@ -117,7 +126,6 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('- [ ] ', '', 'Task item')}
             title="Task list checkbox (- [ ])"
-            style={{ padding: '3px 6px' }}
           >
             <CheckSquare size={13} />
           </button>
@@ -125,35 +133,47 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('> ', '', 'Quote text')}
             title="Blockquote (> )"
-            style={{ padding: '3px 6px' }}
           >
             <Quote size={13} />
           </button>
 
-          <div style={{ width: '1px', height: '14px', backgroundColor: '#3f3f46', margin: '0 3px' }} />
+          <div className="toolbar-divider" />
 
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('\n| Column 1 | Column 2 |\n| :--- | :--- |\n| Item 1 | Item 2 |\n')}
             title="Insert Table"
-            style={{ padding: '3px 6px' }}
           >
             <Table size={13} />
           </button>
+
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('\n\n<!-- pagebreak -->\n\n')}
             title="Insert Page Break (starts a new handwritten sheet)"
-            style={{ padding: '3px 6px', color: '#a78bfa' }}
+            style={{ color: '#a78bfa' }}
           >
             <Scissors size={13} />
-            <span style={{ fontSize: '11px', marginLeft: '3px' }}>Page Break</span>
+            <span className="editor-btn-label">Break</span>
+          </button>
+
+          <div className="toolbar-divider" />
+
+          {/* Import Pages Button */}
+          <button
+            className="btn btn-ghost btn-sm btn-import-toolbar"
+            onClick={onOpenImport}
+            title="Import pages from PDF, Word / Google Docs (.docx)"
+          >
+            <FileDown size={13} />
+            <span className="editor-btn-label">Import</span>
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#71717a' }}>
-          <span>Drop .md here</span>
-          <FileUp size={12} />
+        {/* Drop Hint */}
+        <div className="editor-drop-hint" title="Drag & drop PDF, Word (.docx) or Markdown files directly here">
+          <FileUp size={12} style={{ flexShrink: 0 }} />
+          <span className="editor-drop-text">Drop PDF / Docs / MD</span>
         </div>
       </div>
 
@@ -162,8 +182,14 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange, onDropFile }) =
         ref={textareaRef}
         className="editor-textarea"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Type or paste markdown here, or drag & drop a .md file..."
+        onChange={(e) => {
+          onChange(e.target.value);
+          updateCursor(e.target);
+        }}
+        onClick={(e) => updateCursor(e.currentTarget)}
+        onKeyUp={(e) => updateCursor(e.currentTarget)}
+        onSelect={(e) => updateCursor(e.currentTarget)}
+        placeholder="Type or paste markdown here, or drag & drop a PDF, Word docx or Markdown file..."
         spellCheck="false"
       />
     </div>

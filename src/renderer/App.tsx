@@ -5,7 +5,8 @@ import { PaperPreview } from './components/PaperPreview';
 import { StyleToolbar } from './components/StyleToolbar';
 import { TemplatesModal } from './components/TemplatesModal';
 import { ExportModal } from './components/ExportModal';
-import { HandwritingSettings, SampleTemplate } from './types';
+import { ImportModal } from './components/ImportModal';
+import { HandwritingSettings, SampleTemplate, InsertionTarget } from './types';
 import { DEFAULT_SETTINGS } from './utils/paperStyles';
 import { SAMPLE_TEMPLATES } from './utils/defaultTemplates';
 import { splitMarkdownIntoPages } from './utils/markdownParser';
@@ -34,8 +35,12 @@ export const App: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<'split' | 'preview' | 'editor'>('split');
   const [zoom, setZoom] = useState<number>(100);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => window.innerWidth > 960);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [isImportOpen, setIsImportOpen] = useState<boolean>(false);
+  const [droppedImportFile, setDroppedImportFile] = useState<File | null>(null);
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
   // Save changes to localStorage
   useEffect(() => {
@@ -61,10 +66,6 @@ export const App: React.FC = () => {
   // Update settings handler
   const handleUpdateSettings = (updated: Partial<HandwritingSettings>) => {
     setSettings((prev) => ({ ...prev, ...updated }));
-  };
-
-  const handleResetSettings = () => {
-    setSettings(DEFAULT_SETTINGS);
   };
 
   // Open file handler (Electron IPC or HTML File input fallback)
@@ -120,24 +121,17 @@ export const App: React.FC = () => {
     }
   };
 
-  // Save As file handler
-  const handleSaveAsFile = async () => {
-    if (window.electronAPI) {
-      try {
-        const result = await window.electronAPI.saveFile(markdown);
-        if (result.success && result.path) {
-          setCurrentFilePath(result.path);
-          const name = result.path.split(/[\\/]/).pop() || currentFileName;
-          setCurrentFileName(name);
-        }
-      } catch (err) {
-        console.error('Failed to save file as:', err);
-      }
-    }
-  };
-
-  // File drag & drop onto editor
+  // File drag & drop onto editor / app
   const handleDropFile = (file: File) => {
+    const lowerName = file.name.toLowerCase();
+    // If dropped file is a PDF, DOCX, or DOC, open the Import Modal to select pages & insertion place!
+    if (lowerName.endsWith('.pdf') || lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) {
+      setDroppedImportFile(file);
+      setIsImportOpen(true);
+      return;
+    }
+
+    // Otherwise load directly as markdown/txt
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
@@ -148,6 +142,41 @@ export const App: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  // Insert imported document content into chosen destination
+  const handleInsertContent = (contentToInsert: string, target: InsertionTarget) => {
+    setMarkdown((prev) => {
+      if (target === 'replace') {
+        return contentToInsert;
+      }
+      if (target === 'prepend') {
+        return `${contentToInsert}\n\n<!-- pagebreak -->\n\n${prev}`.trim();
+      }
+      if (target === 'append') {
+        const sep = prev.trim() ? '\n\n<!-- pagebreak -->\n\n' : '';
+        return prev + sep + contentToInsert;
+      }
+      if (target === 'new-page') {
+        if (cursorPosition !== null && cursorPosition >= 0 && cursorPosition <= prev.length) {
+          const before = prev.slice(0, cursorPosition).trimEnd();
+          const after = prev.slice(cursorPosition).trimStart();
+          const beforeSep = before ? '\n\n<!-- pagebreak -->\n\n' : '';
+          const afterSep = after ? '\n\n<!-- pagebreak -->\n\n' : '';
+          return `${before}${beforeSep}${contentToInsert}${afterSep}${after}`;
+        }
+        const sep = prev.trim() ? '\n\n<!-- pagebreak -->\n\n' : '';
+        return prev + sep + contentToInsert;
+      }
+      // target === 'cursor'
+      if (cursorPosition !== null && cursorPosition >= 0 && cursorPosition <= prev.length) {
+        const before = prev.slice(0, cursorPosition);
+        const after = prev.slice(cursorPosition);
+        return before + contentToInsert + after;
+      }
+      const sep = prev.trim() ? '\n\n' : '';
+      return prev + sep + contentToInsert;
+    });
   };
 
   // Select sample template
@@ -161,7 +190,7 @@ export const App: React.FC = () => {
     setCurrentFilePath(null);
   };
 
-  // Global Keyboard Shortcuts (Ctrl+S, Ctrl+O, Ctrl+E)
+  // Global Keyboard Shortcuts (Ctrl+S, Ctrl+O, Ctrl+E, Ctrl+I)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -173,6 +202,10 @@ export const App: React.FC = () => {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
         e.preventDefault();
         setIsExportOpen(true);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+        e.preventDefault();
+        setDroppedImportFile(null);
+        setIsImportOpen(true);
       }
     };
 
@@ -184,30 +217,40 @@ export const App: React.FC = () => {
     <div className="app-layout">
       {/* Top Application Header */}
       <Header
-        fileName={currentFileName}
-        filePath={currentFilePath}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
         onOpenFile={handleOpenFile}
         onSaveFile={handleSaveFile}
-        onSaveAsFile={handleSaveAsFile}
         onOpenTemplates={() => setIsTemplatesOpen(true)}
-        onOpenExport={() => setIsExportOpen(true)}
-        onResetSettings={handleResetSettings}
+        onOpenImport={() => {
+          setDroppedImportFile(null);
+          setIsImportOpen(true);
+        }}
+        onExportPdf={() => setIsExportOpen(true)}
+        onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
+        isSidebarOpen={isSidebarOpen}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
         pageCount={pages.length}
+        wordCount={wordCount}
+        currentFileName={currentFileName}
       />
 
       {/* Main Content Workspace */}
       <div className="workspace-container">
+        {/* Editor Pane (Hidden in Preview-only mode) */}
         {viewMode !== 'preview' && (
           <Editor
-            markdown={markdown}
+            value={markdown}
             onChange={setMarkdown}
             onDropFile={handleDropFile}
-            wordCount={wordCount}
+            onCursorChange={setCursorPosition}
+            onOpenImport={() => {
+              setDroppedImportFile(null);
+              setIsImportOpen(true);
+            }}
           />
         )}
 
+        {/* Paper Live Preview Pane (Hidden in Editor-only mode) */}
         {viewMode !== 'editor' && (
           <PaperPreview
             pages={pages}
@@ -217,10 +260,14 @@ export const App: React.FC = () => {
           />
         )}
 
-        <StyleToolbar
-          settings={settings}
-          onChange={handleUpdateSettings}
-        />
+        {/* Handwriting Styles & Paper Configuration Toolbar */}
+        {isSidebarOpen && (
+          <StyleToolbar
+            settings={settings}
+            onChange={handleUpdateSettings}
+            onClose={() => setIsSidebarOpen(false)}
+          />
+        )}
       </div>
 
       {/* Templates Modal */}
@@ -230,12 +277,24 @@ export const App: React.FC = () => {
         onSelectTemplate={handleSelectTemplate}
       />
 
-      {/* PDF Export Modal */}
+      {/* Export to PDF Modal */}
       <ExportModal
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         settings={settings}
         pageCount={pages.length}
+      />
+
+      {/* Import Pages from PDF, Word / Google Docs Modal */}
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={() => {
+          setIsImportOpen(false);
+          setDroppedImportFile(null);
+        }}
+        onInsert={handleInsertContent}
+        initialFile={droppedImportFile}
+        hasCursorPosition={cursorPosition !== null}
       />
     </div>
   );

@@ -9,18 +9,30 @@ import {
   Sliders,
   Layout,
   CheckCircle2,
+  X,
 } from 'lucide-react';
 
 interface StyleToolbarProps {
   settings: HandwritingSettings;
   onChange: (newSettings: Partial<HandwritingSettings>) => void;
+  onClose?: () => void;
 }
 
-export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange }) => {
+export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange, onClose }) => {
   return (
     <div className="app-sidebar no-print" style={{ paddingBottom: '32px' }}>
-      <div className="sidebar-section-title">
+      <div className="sidebar-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>Style & Stationery</span>
+        {onClose && (
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={onClose}
+            title="Close Styles Sidebar"
+            style={{ padding: '2px 6px', height: '22px' }}
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* 1. Handwriting Font */}
@@ -59,25 +71,25 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange }
                     style={{
                       fontFamily: `"${font.id}", cursive, sans-serif`,
                       fontSize: '15px',
-                      color: isSelected ? '#a5b4fc' : '#71717a',
+                      color: isSelected ? '#818cf8' : '#71717a',
                       marginTop: '2px',
                     }}
                   >
-                    abc 123
+                    The quick brown fox jumps
                   </div>
                 </div>
-                {isSelected && <CheckCircle2 size={15} color="#818cf8" />}
+                {isSelected && <CheckCircle2 size={16} color="#818cf8" />}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 2. Paper Stationery */}
+      {/* 2. Paper Texture & Type */}
       <div className="settings-group">
         <div className="settings-group-title">
           <FileSpreadsheet size={13} color="#818cf8" />
-          <span>Notebook Stationery</span>
+          <span>Paper Texture</span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
@@ -86,43 +98,27 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange }
             return (
               <button
                 key={paper.id}
-                onClick={() => {
-                  const updates: Partial<HandwritingSettings> = { paperType: paper.id };
-                  if (paper.id === 'college' && settings.lineHeight > 28) {
-                    updates.lineHeight = 26;
-                  } else if (paper.id === 'ruled' && settings.lineHeight < 30) {
-                    updates.lineHeight = 32;
-                  }
-                  onChange(updates);
-                }}
+                onClick={() => onChange({ paperType: paper.id })}
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
                   padding: '8px 10px',
                   borderRadius: '6px',
                   border: isSelected ? '1px solid #6366f1' : '1px solid #27272a',
-                  backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.12)' : '#18181b',
+                  backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.15)' : '#18181b',
+                  color: isSelected ? '#ffffff' : '#a1a1aa',
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.1s ease',
                 }}
               >
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '3px',
-                    backgroundColor: paper.bgColor,
-                    border: '1px solid rgba(0,0,0,0.2)',
-                    flexShrink: 0,
-                  }}
-                />
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontSize: '12px', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#fff' : '#d4d4d8', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                    {paper.name}
-                  </div>
-                </div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: isSelected ? '#fff' : '#e4e4e7' }}>
+                  {paper.name}
+                </span>
+                <span style={{ fontSize: '10px', color: '#71717a', marginTop: '2px' }}>
+                  {paper.description}
+                </span>
               </button>
             );
           })}
@@ -133,233 +129,236 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange }
       <div className="settings-group">
         <div className="settings-group-title">
           <Palette size={13} color="#818cf8" />
-          <span>Pen Ink Color</span>
+          <span>Ink Color</span>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
           {INK_COLORS.map((ink) => {
-            const isSelected = settings.inkColor.toLowerCase() === ink.hex.toLowerCase();
+            const isSelected = settings.inkColor === ink.color;
             return (
               <button
-                key={ink.hex}
-                onClick={() => onChange({ inkColor: ink.hex })}
+                key={ink.name}
+                onClick={() => onChange({ inkColor: ink.color })}
                 title={ink.name}
                 style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '50%',
-                  backgroundColor: ink.hex,
-                  border: isSelected ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.15)',
-                  cursor: 'pointer',
-                  boxShadow: isSelected ? '0 0 0 2px #6366f1' : 'none',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
+                  padding: '6px 4px',
+                  borderRadius: '6px',
+                  border: isSelected ? '2px solid #6366f1' : '1px solid #27272a',
+                  backgroundColor: isSelected ? '#202024' : '#18181b',
+                  cursor: 'pointer',
                 }}
               >
-                {isSelected && <CheckCircle2 size={12} color="#ffffff" />}
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: ink.color,
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    marginBottom: '4px',
+                  }}
+                />
+                <span style={{ fontSize: '10px', color: isSelected ? '#fff' : '#71717a' }}>
+                  {ink.name}
+                </span>
               </button>
             );
           })}
-
-          {/* Custom Color Input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
-            <input
-              type="color"
-              value={settings.inkColor}
-              onChange={(e) => onChange({ inkColor: e.target.value })}
-              title="Custom Hex Color"
-              style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '6px',
-                border: '1px solid #3f3f46',
-                cursor: 'pointer',
-                background: 'transparent',
-                padding: 0,
-              }}
-            />
-            <span style={{ fontSize: '11px', color: '#a1a1aa', fontFamily: 'monospace' }}>
-              {settings.inkColor}
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* 4. Stroke & Handwriting Realism */}
-      <div className="settings-group">
-        <div className="settings-group-title">
-          <Sparkles size={13} color="#818cf8" />
-          <span>Realism & Pen Stroke</span>
-        </div>
-
-        {/* Pen Weight */}
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', color: '#a1a1aa', marginBottom: '6px' }}>Pen Weight / Tip</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
-            {(['fine', 'regular', 'medium', 'bold'] as const).map((wt) => (
-              <button
-                key={wt}
-                className={`btn btn-sm ${settings.penThickness === wt ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => onChange({ penThickness: wt })}
-                style={{ textTransform: 'capitalize', fontSize: '11px', padding: '4px' }}
-              >
-                {wt}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Natural Jitter */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a1a1aa', marginBottom: '6px' }}>
-            <span>Handwriting Tremor / Jitter</span>
-            <span style={{ color: '#818cf8', fontWeight: 600 }}>{settings.jitter}</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
-            {(['none', 'subtle', 'medium', 'strong'] as JitterIntensity[]).map((jit) => (
-              <button
-                key={jit}
-                className={`btn btn-sm ${settings.jitter === jit ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => onChange({ jitter: jit })}
-                style={{ textTransform: 'capitalize', fontSize: '11px', padding: '4px' }}
-              >
-                {jit}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* 5. Typography Sliders */}
+      {/* 4. Pen Stroke Thickness */}
       <div className="settings-group">
         <div className="settings-group-title">
           <Sliders size={13} color="#818cf8" />
-          <span>Sizing & Line Spacing</span>
+          <span>Pen Thickness</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+          {(['fine', 'regular', 'medium', 'bold'] as const).map((thickness) => {
+            const isSelected = settings.penThickness === thickness;
+            return (
+              <button
+                key={thickness}
+                onClick={() => onChange({ penThickness: thickness })}
+                style={{
+                  padding: '6px 0',
+                  borderRadius: '6px',
+                  border: isSelected ? '1px solid #6366f1' : '1px solid #27272a',
+                  backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.15)' : '#18181b',
+                  color: isSelected ? '#ffffff' : '#a1a1aa',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  textTransform: 'capitalize',
+                  cursor: 'pointer',
+                }}
+              >
+                {thickness}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 5. Human Natural Jitter */}
+      <div className="settings-group">
+        <div className="settings-group-title">
+          <Sparkles size={13} color="#818cf8" />
+          <span>Natural Jitter</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+          {(['none', 'subtle', 'medium', 'strong'] as const).map((intensity) => {
+            const isSelected = settings.jitter === intensity;
+            return (
+              <button
+                key={intensity}
+                onClick={() => onChange({ jitter: intensity })}
+                style={{
+                  padding: '6px 0',
+                  borderRadius: '6px',
+                  border: isSelected ? '1px solid #6366f1' : '1px solid #27272a',
+                  backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.15)' : '#18181b',
+                  color: isSelected ? '#ffffff' : '#a1a1aa',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  textTransform: 'capitalize',
+                  cursor: 'pointer',
+                }}
+              >
+                {intensity}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 6. Typography Sliders */}
+      <div className="settings-group">
+        <div className="settings-group-title">
+          <Sliders size={13} color="#818cf8" />
+          <span>Font & Line Metrics</span>
         </div>
 
         {/* Font Size */}
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>
-            <span>Font Size</span>
-            <span style={{ color: '#f4f4f5' }}>{settings.fontSize}px</span>
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+            <span style={{ color: '#a1a1aa' }}>Font Size</span>
+            <span style={{ color: '#f4f4f5', fontWeight: 600 }}>{settings.fontSize}px</span>
           </div>
           <input
             type="range"
-            min="14"
-            max="30"
-            step="1"
+            min={14}
+            max={32}
             value={settings.fontSize}
             onChange={(e) => onChange({ fontSize: Number(e.target.value) })}
-            style={{ width: '100%' }}
+            style={{ width: '100%', accentColor: '#6366f1' }}
           />
         </div>
 
-        {/* Line Height (Ruled Line Spacing) */}
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>
-            <span>Paper Line Spacing</span>
-            <span style={{ color: '#f4f4f5' }}>{settings.lineHeight}px</span>
+        {/* Line Height */}
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+            <span style={{ color: '#a1a1aa' }}>Line Height (Ruling)</span>
+            <span style={{ color: '#f4f4f5', fontWeight: 600 }}>{settings.lineHeight}px</span>
           </div>
           <input
             type="range"
-            min="22"
-            max="46"
-            step="2"
+            min={24}
+            max={48}
             value={settings.lineHeight}
             onChange={(e) => onChange({ lineHeight: Number(e.target.value) })}
-            style={{ width: '100%' }}
+            style={{ width: '100%', accentColor: '#6366f1' }}
           />
-        </div>
-
-        {/* Baseline Line Alignment (Above Bottom Line) */}
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>
-            <span>Line Alignment (Baseline)</span>
-            <span style={{ color: '#818cf8', fontWeight: 600 }}>
-              {settings.baselineOffset > 0 ? `+${settings.baselineOffset}` : settings.baselineOffset || 0}px
-            </span>
-          </div>
-          <input
-            type="range"
-            min="-6"
-            max="10"
-            step="1"
-            value={settings.baselineOffset || 0}
-            onChange={(e) => onChange({ baselineOffset: Number(e.target.value) })}
-            style={{ width: '100%' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#71717a', marginTop: '2px' }}>
-            <span>Higher</span>
-            <span>On line</span>
-            <span>Lower</span>
-          </div>
         </div>
 
         {/* Letter Spacing */}
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>
-            <span>Letter Spacing</span>
-            <span style={{ color: '#f4f4f5' }}>{settings.letterSpacing}px</span>
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+            <span style={{ color: '#a1a1aa' }}>Letter Spacing</span>
+            <span style={{ color: '#f4f4f5', fontWeight: 600 }}>{settings.letterSpacing}px</span>
           </div>
           <input
             type="range"
-            min="-1"
-            max="3"
-            step="0.5"
+            min={-2}
+            max={6}
+            step={0.5}
             value={settings.letterSpacing}
             onChange={(e) => onChange({ letterSpacing: Number(e.target.value) })}
-            style={{ width: '100%' }}
+            style={{ width: '100%', accentColor: '#6366f1' }}
           />
         </div>
 
-        {/* Handwriting Slant */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>
-            <span>Handwriting Slant</span>
-            <span style={{ color: '#f4f4f5' }}>{settings.slant}°</span>
+        {/* Baseline Alignment Offset */}
+        <div style={{ marginBottom: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+            <span style={{ color: '#a1a1aa' }}>Baseline Offset</span>
+            <span style={{ color: '#f4f4f5', fontWeight: 600 }}>{settings.baselineOffset}px</span>
           </div>
           <input
             type="range"
-            min="-5"
-            max="12"
-            step="1"
-            value={settings.slant}
-            onChange={(e) => onChange({ slant: Number(e.target.value) })}
-            style={{ width: '100%' }}
+            min={-10}
+            max={15}
+            value={settings.baselineOffset}
+            onChange={(e) => onChange({ baselineOffset: Number(e.target.value) })}
+            style={{ width: '100%', accentColor: '#6366f1' }}
           />
         </div>
       </div>
 
-      {/* 6. Page Format & Notebook Accents */}
+      {/* 7. Page Layout & Details */}
       <div className="settings-group">
         <div className="settings-group-title">
           <Layout size={13} color="#818cf8" />
-          <span>Paper Format & Accents</span>
+          <span>Sheet Details</span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* Red Margin Line Toggle */}
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#d4d4d8', cursor: 'pointer' }}>
-            <span>Red Margin Guide</span>
-            <input
-              type="checkbox"
-              checked={settings.showMarginLine}
-              onChange={(e) => onChange({ showMarginLine: e.target.checked })}
-            />
-          </label>
+        {/* Margin line toggle */}
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', cursor: 'pointer' }}>
+          <span style={{ fontSize: '12px', color: '#e4e4e7' }}>Red Margin Line</span>
+          <input
+            type="checkbox"
+            checked={settings.showMarginLine}
+            onChange={(e) => onChange({ showMarginLine: e.target.checked })}
+            style={{ accentColor: '#6366f1' }}
+          />
+        </label>
 
-          {/* 3-Hole Binder Punches */}
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#d4d4d8', cursor: 'pointer' }}>
-            <span>Binder Hole Punches</span>
-            <input
-              type="checkbox"
-              checked={settings.showHoles}
-              onChange={(e) => onChange({ showHoles: e.target.checked })}
-            />
-          </label>
-        </div>
+        {/* Binder holes toggle */}
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', cursor: 'pointer' }}>
+          <span style={{ fontSize: '12px', color: '#e4e4e7' }}>Binder Punch Holes</span>
+          <input
+            type="checkbox"
+            checked={settings.showHoles}
+            onChange={(e) => onChange({ showHoles: e.target.checked })}
+            style={{ accentColor: '#6366f1' }}
+          />
+        </label>
+
+        {/* Header date/subject toggle */}
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', cursor: 'pointer' }}>
+          <span style={{ fontSize: '12px', color: '#e4e4e7' }}>Header Date & Subject</span>
+          <input
+            type="checkbox"
+            checked={settings.showHeader}
+            onChange={(e) => onChange({ showHeader: e.target.checked })}
+            style={{ accentColor: '#6366f1' }}
+          />
+        </label>
+
+        {/* Show Page Numbers */}
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+          <span style={{ fontSize: '12px', color: '#e4e4e7' }}>Page Numbers</span>
+          <input
+            type="checkbox"
+            checked={settings.showPageNumbers}
+            onChange={(e) => onChange({ showPageNumbers: e.target.checked })}
+            style={{ accentColor: '#6366f1' }}
+          />
+        </label>
       </div>
     </div>
   );
