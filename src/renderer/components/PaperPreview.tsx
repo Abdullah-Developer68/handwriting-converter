@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { HandwritingSettings } from '../types';
 import { PAGE_DIMENSIONS, getComputedBaselineShift } from '../utils/paperStyles';
 import { parseMarkdownToHtml } from '../utils/markdownParser';
@@ -24,21 +24,54 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
   onDeletePage,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [internalZoom, setInternalZoom] = useState<number>(115);
+  const [internalZoom, setInternalZoom] = useState<number>(75);
+  const userManuallyChangedZoom = useRef<boolean>(false);
+
+  // Dimensions based on page size & orientation with safe fallbacks
+  const pageSize = settings?.pageSize && PAGE_DIMENSIONS[settings.pageSize] ? settings.pageSize : 'A4';
+  const orientation = settings?.orientation === 'landscape' ? 'landscape' : 'portrait';
+  const pageDims = PAGE_DIMENSIONS[pageSize][orientation];
+
+  // Compute zoom so the paper width comfortably fits inside the preview container without clipping
+  const computeFitZoom = useCallback(() => {
+    if (!containerRef.current) return 75;
+    const availWidth = containerRef.current.clientWidth - 48;
+    if (availWidth <= 50 || !pageDims.width) return 75;
+    const fit = Math.floor((availWidth / pageDims.width) * 100);
+    return Math.max(35, Math.min(100, fit));
+  }, [pageDims.width]);
+
+  // Auto-fit on mount and when paper dimensions change
+  useEffect(() => {
+    if (!userManuallyChangedZoom.current) {
+      const fit = computeFitZoom();
+      setInternalZoom(fit);
+    }
+  }, [computeFitZoom]);
+
+  // Adjust fit zoom when container element resizes (e.g. toggling sidebar, changing window size)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      if (!userManuallyChangedZoom.current) {
+        const fit = computeFitZoom();
+        setInternalZoom(fit);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [computeFitZoom]);
 
   const activeZoom = zoom !== undefined ? zoom : internalZoom;
   const updateZoom = (valOrFn: number | ((prev: number) => number)) => {
+    userManuallyChangedZoom.current = true;
     if (setZoom) {
       setZoom(valOrFn);
     } else {
       setInternalZoom(valOrFn);
     }
   };
-
-  // Dimensions based on page size & orientation with safe fallbacks
-  const pageSize = settings?.pageSize && PAGE_DIMENSIONS[settings.pageSize] ? settings.pageSize : 'A4';
-  const orientation = settings?.orientation === 'landscape' ? 'landscape' : 'portrait';
-  const pageDims = PAGE_DIMENSIONS[pageSize][orientation];
 
   // Pen stroke thickness class
   const penClass = `pen-${settings?.penThickness || 'regular'}`;
@@ -56,11 +89,21 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
   );
 
   const handleZoomIn = () => {
-    updateZoom((z) => Math.min(200, z + 15));
+    updateZoom((z) => Math.min(200, z + 10));
   };
 
   const handleZoomOut = () => {
-    updateZoom((z) => Math.max(40, z - 15));
+    updateZoom((z) => Math.max(35, z - 10));
+  };
+
+  const handleFitZoom = () => {
+    userManuallyChangedZoom.current = false;
+    const fit = computeFitZoom();
+    if (setZoom) {
+      setZoom(fit);
+    } else {
+      setInternalZoom(fit);
+    }
   };
 
   const handleResetZoom = () => {
@@ -82,7 +125,8 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
       {/* Zoom and Page Nav Toolbar */}
       <div className="preview-toolbar no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-          {pages.length > 1 && (
+          {
+          pages.length > 1 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -126,9 +170,18 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
 
           <button
             className="btn btn-ghost btn-sm"
+            onClick={handleFitZoom}
+            title="Fit page to view width"
+            style={{ fontSize: '11px', padding: '2px 8px', color: '#38bdf8', fontWeight: 600 }}
+          >
+            Fit
+          </button>
+
+          <button
+            className="btn btn-ghost btn-sm"
             onClick={handleResetZoom}
             title="Reset Zoom to 100%"
-            style={{ fontSize: '11px', minWidth: '45px', padding: '4px' }}
+            style={{ fontSize: '11px', minWidth: '42px', padding: '4px' }}
           >
             {activeZoom}%
           </button>
@@ -149,9 +202,9 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
         <div
           className="sheets-wrapper"
           style={{
-            transform: `scale(${activeZoom / 100})`,
-            transformOrigin: 'top center',
-            transition: 'transform 0.15s ease',
+            zoom: `${activeZoom / 100}`,
+            margin: '0 auto',
+            width: 'fit-content',
             display: 'flex',
             flexDirection: 'column',
             gap: '32px',

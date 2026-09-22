@@ -170,15 +170,15 @@ body {
   height: calc(100vh - 52px);
 }
 
-/* Editor Pane with Container Queries */
+/* Editor Pane with Container Queries - Even 50% split */
 .editor-pane {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   background-color: #18181b;
   border-right: 1px solid #27272a;
-  min-width: 280px;
-  max-width: 50%;
+  min-width: 0;
+  width: 50%;
   transition: all 0.2s ease;
   container-type: inline-size;
   container-name: editor;
@@ -299,15 +299,17 @@ body {
   overflow-y: auto;
 }
 
-/* Preview Pane */
+/* Preview Pane - Even 50% split */
 .preview-pane {
-  flex: 1.2;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   background-color: #0f0f11;
   overflow: hidden;
   position: relative;
-  min-width: 300px;
+  min-width: 0;
+  width: 50%;
+  transition: all 0.2s ease;
 }
 
 .preview-toolbar {
@@ -327,11 +329,18 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
-  padding: 32px 16px;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.sheets-wrapper {
+  margin: 0 auto;
+  width: fit-content;
   display: flex;
   flex-direction: column;
+  gap: 28px;
   align-items: center;
-  gap: 32px;
 }
 
 /* Sidebar Settings - Fully Scrollable */

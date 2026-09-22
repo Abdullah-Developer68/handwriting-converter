@@ -148,6 +148,20 @@ async function parseDocumentData(buffer: Buffer, filename: string): Promise<any>
 }
 
 function runElectronApp() {
+  process.on('uncaughtException', (err: any) => {
+    if (err?.code === 'EPIPE' || err?.message?.includes('EPIPE')) return;
+    console.error('Uncaught Exception:', err);
+  });
+  if (process.stdout) {
+    process.stdout.on('error', (err: any) => {
+      if (err?.code === 'EPIPE') return;
+    });
+  }
+  if (process.stderr) {
+    process.stderr.on('error', (err: any) => {
+      if (err?.code === 'EPIPE') return;
+    });
+  }
   const { app, BrowserWindow, ipcMain, dialog, shell } = electron;
 
   // On Linux Wayland, disable Vulkan to prevent surface factory incompatibility warnings
@@ -216,14 +230,15 @@ function runElectronApp() {
       }
     });
 
-    // Forward renderer console logs cleanly without deprecation warnings
+    // Forward renderer console logs safely
     mainWindow.webContents.on('console-message', (event: any, ...legacyArgs: any[]) => {
-      // In newer Electron versions, event has the params; in older versions, arguments are passed separately
-      const message = typeof event?.message === 'string' ? event.message : legacyArgs[1] || '';
-      const level = typeof event?.level === 'number' ? event.level : legacyArgs[0] || 0;
-      const line = typeof event?.line === 'number' ? event.line : legacyArgs[2] || 0;
-      const sourceId = typeof event?.sourceId === 'string' ? event.sourceId : legacyArgs[3] || '';
-      console.log(`[Renderer log ${level}]: ${message} (${sourceId}:${line})`);
+      try {
+        const message = typeof event?.message === 'string' ? event.message : legacyArgs[1] || '';
+        const level = typeof event?.level === 'number' ? event.level : legacyArgs[0] || 0;
+        const line = typeof event?.line === 'number' ? event.line : legacyArgs[2] || 0;
+        const sourceId = typeof event?.sourceId === 'string' ? event.sourceId : legacyArgs[3] || '';
+        console.log(`[Renderer log ${level}]: ${message} (${sourceId}:${line})`);
+      } catch (_ignored) {}
     });
 
     const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -245,13 +260,8 @@ function runElectronApp() {
       });
     }
 
-    mainWindow.webContents.on('did-finish-load', () => {
-      mainWindow?.webContents.setZoomFactor(1.15);
-    });
-
     mainWindow.once('ready-to-show', () => {
       if (mainWindow) {
-        mainWindow.webContents.setZoomFactor(1.15);
         mainWindow.show();
         mainWindow.focus();
       }
