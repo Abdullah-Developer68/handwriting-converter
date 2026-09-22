@@ -24,7 +24,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
   onDeletePage,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [internalZoom, setInternalZoom] = useState<number>(100);
+  const [internalZoom, setInternalZoom] = useState<number>(115);
 
   const activeZoom = zoom !== undefined ? zoom : internalZoom;
   const updateZoom = (valOrFn: number | ((prev: number) => number)) => {

@@ -31,41 +31,16 @@ const DEFAULT_SETTINGS: HandwritingSettings = {
   showHeader: false,
   headerDate: '',
   headerSubject: '',
-  showPageNumbers: true,
+  showPageNumbers: false,
   pageNumberStyle: 'x-of-y',
 };
 
-const DEFAULT_MARKDOWN = `# Computer Networks Lab Report
-## Experiment 1: Packet Sniffing & Analysis
-
-In this experiment, we utilized **Wireshark** to capture and analyze live network packets traversing the local network interface.
-
-### Key Objectives:
-- Capture and inspect TCP 3-way handshake (SYN, SYN-ACK, ACK)
-- Examine DNS query and response resolution delays
-- Verify payload integrity and checksum validation
-
-> **Observation:** Packet delivery latency stayed consistently under 12ms during localized echo requests.
-
-### Captured Protocol Summary:
-| Protocol | Packet Count | Percentage |
-| :--- | :--- | :--- |
-| TCP | 1,420 | 68.4% |
-| UDP | 450 | 21.7% |
-| ICMP | 110 | 5.3% |
-| Other | 95 | 4.6% |
-
-- [x] Initial interface promiscuous mode enabled
-- [x] Captured baseline ICMP echo traffic
-- [ ] Document final throughput benchmarks
-
-==Note: Ensure all MAC addresses are anonymized before submitting the final laboratory report.==
-`;
+const DEFAULT_MARKDOWN = '';
 
 export const App: React.FC = () => {
   const [markdown, setMarkdown] = useState<string>(DEFAULT_MARKDOWN);
   const [settings, setSettings] = useState<HandwritingSettings>(DEFAULT_SETTINGS);
-  const [currentFileName, setCurrentFileName] = useState<string>('notes.md');
+  const [currentFileName, setCurrentFileName] = useState<string>('Untitled.md');
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'split' | 'preview' | 'editor'>('split');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);

@@ -245,8 +245,13 @@ function runElectronApp() {
       });
     }
 
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindow?.webContents.setZoomFactor(1.15);
+    });
+
     mainWindow.once('ready-to-show', () => {
       if (mainWindow) {
+        mainWindow.webContents.setZoomFactor(1.15);
         mainWindow.show();
         mainWindow.focus();
       }
