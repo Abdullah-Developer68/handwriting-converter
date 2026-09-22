@@ -1,28 +1,18 @@
 import { marked } from 'marked';
 
-// Configure marked with GFM and line breaks
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
-
 /**
- * Pre-process markdown text before feeding to marked
- * - Support ==highlight== syntax
- * - Support custom page breaks <!-- pagebreak --> or [pagebreak] or ===page===
- * - Support interactive task lists [ ] and [x]
+ * Custom renderer extensions for marked to support handwriting-specific styles
  */
-export function preprocessMarkdown(rawMarkdown: string): string {
-  let processed = rawMarkdown;
+export function preprocessMarkdown(markdown: string): string {
+  let processed = markdown;
 
-  // Convert ==highlighted text== to <mark class="highlight-yellow">text</mark>
+  // Highlight syntax: ==yellow text== -> <mark class="highlight-yellow">text</mark>
   processed = processed.replace(/==([^=\n]+)==/g, '<mark class="highlight-yellow">$1</mark>');
 
-  // Convert ==pink:text== to <mark class="highlight-pink">text</mark>
+  // Color highlight syntax: ==pink:text==, ==green:text==, ==blue:text==
   processed = processed.replace(/==pink:([^=\n]+)==/g, '<mark class="highlight-pink">$1</mark>');
-
-  // Convert ==green:text== to <mark class="highlight-green">text</mark>
   processed = processed.replace(/==green:([^=\n]+)==/g, '<mark class="highlight-green">$1</mark>');
+  processed = processed.replace(/==blue:([^=\n]+)==/g, '<mark class="highlight-blue">$1</mark>');
 
   // Enhance task list items: - [ ] Task and - [x] Done
   processed = processed.replace(/^-\s*\[ \]\s*(.*)$/gm, '<li class="task-list-item"><span class="handwritten-checkbox"></span>$1</li>');
@@ -32,51 +22,104 @@ export function preprocessMarkdown(rawMarkdown: string): string {
 }
 
 /**
- * Splits a long text paragraph into sentence or word chunks that fit within maxLines
+ * Strips inline markdown markup symbols to compute actual visible rendered text length
  */
-function splitLongParagraph(paragraph: string, maxLines: number, charsPerLine: number = 65): string[] {
-  const estimatedLines = Math.max(1, Math.ceil(paragraph.length / charsPerLine));
-  if (estimatedLines <= maxLines) {
-    return [paragraph];
+function getRenderedTextLength(text: string): number {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/==([^=]+)==/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .trim().length;
+}
+
+/**
+ * Estimates line weight in terms of notebook line units
+ */
+function estimateLineWeight(line: string, prevLine: string, charsPerLine: number): number {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    // Blank line after heading or at the start of a page doesn't occupy extra lines
+    if (!prevLine || prevLine.trim().startsWith('#')) {
+      return 0;
+    }
+    return 0.8;
   }
 
-  // Split by sentences first
-  const sentences = paragraph.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [paragraph];
-  const chunks: string[] = [];
-  let currentChunk = '';
-  let currentChunkLines = 0;
+  if (trimmed.startsWith('# ')) {
+    return 2.5; // H1
+  }
+  if (trimmed.startsWith('## ')) {
+    return 2.0; // H2
+  }
+  if (trimmed.startsWith('### ')) {
+    return 1.5; // H3
+  }
+  if (/^[-*_]{3,}$/.test(trimmed)) {
+    return 1.5; // horizontal rule
+  }
+  if (trimmed.startsWith('|')) {
+    return 1.2; // table row
+  }
 
-  for (const sentence of sentences) {
-    const sentenceLines = Math.max(1, Math.ceil(sentence.length / charsPerLine));
-    if (currentChunk && currentChunkLines + sentenceLines > maxLines) {
-      chunks.push(currentChunk.trim());
-      currentChunk = sentence;
-      currentChunkLines = sentenceLines;
-    } else {
-      currentChunk += sentence;
-      currentChunkLines += sentenceLines;
+  const renderedLen = getRenderedTextLength(line);
+  return Math.max(1.0, Math.ceil(renderedLen / charsPerLine));
+}
+
+/**
+ * Splits a paragraph cleanly at a sentence or clause boundary to fill all remaining lines on a page
+ */
+function splitParagraphAtCapacity(text: string, targetChars: number): [string, string] {
+  const minSplit = Math.floor(targetChars * 0.55);
+
+  // Try sentence boundary (. ! ?)
+  const sentenceMatches = [...text.slice(0, targetChars).matchAll(/[.!?]\s+/g)];
+  if (sentenceMatches.length > 0) {
+    const last = sentenceMatches[sentenceMatches.length - 1];
+    const end = (last.index ?? 0) + last[0].length;
+    if (end >= minSplit) {
+      return [text.slice(0, end).trimEnd(), text.slice(end).trimStart()];
     }
   }
 
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
+  // Try punctuation boundary (, ; :)
+  const punctMatches = [...text.slice(0, targetChars).matchAll(/[,;:]\s+/g)];
+  if (punctMatches.length > 0) {
+    const last = punctMatches[punctMatches.length - 1];
+    const end = (last.index ?? 0) + last[0].length;
+    if (end >= minSplit) {
+      return [text.slice(0, end).trimEnd(), text.slice(end).trimStart()];
+    }
   }
 
-  return chunks;
+  // Try word boundary
+  const lastSpace = text.slice(0, targetChars).lastIndexOf(' ');
+  if (lastSpace >= minSplit) {
+    return [text.slice(0, lastSpace).trimEnd(), text.slice(lastSpace + 1).trimStart()];
+  }
+
+  // Fallback to closest word boundary forward
+  const nextSpace = text.indexOf(' ', targetChars);
+  if (nextSpace !== -1 && nextSpace < targetChars + 35) {
+    return [text.slice(0, nextSpace).trimEnd(), text.slice(nextSpace + 1).trimStart()];
+  }
+
+  return [text, ''];
 }
 
 /**
  * Split markdown text into discrete pages
- * 1. Checks for explicit page break markers:
- *    - <!-- pagebreak -->
- *    - [pagebreak]
- *    - ===page===
- *    - \pagebreak
- *    - ---page---
- * 2. If content exceeds single-sheet capacity (maxLinesPerPage), automatically
- *    paginates into multiple sheets cleanly on paragraph and header boundaries.
+ * 1. Checks for explicit page break markers (<!-- pagebreak -->, ===page===, etc.)
+ * 2. Automatically paginates content so all lines on the paper are utilized without wasting space.
  */
-export function splitMarkdownIntoPages(markdown: string, maxLinesPerPage: number = 26): string[] {
+export function splitMarkdownIntoPages(
+  markdown: string, 
+  maxLinesPerPage: number = 32,
+  charsPerLine: number = 82
+): string[] {
   if (!markdown || !markdown.trim()) {
     return [''];
   }
@@ -91,53 +134,67 @@ export function splitMarkdownIntoPages(markdown: string, maxLinesPerPage: number
     const trimmedSection = section.trim();
     if (!trimmedSection) continue;
 
-    // Break section into individual lines to estimate rendered visual height
+    // Preserve inserted full visual PDF pages
+    if (trimmedSection.includes('visual-page-embed')) {
+      finalPages.push(trimmedSection);
+      continue;
+    }
+
     const lines = trimmedSection.split('\n');
     let currentPageLines: string[] = [];
     let currentWeight = 0;
+    let prevLine = '';
+    let i = 0;
 
-    for (let i = 0; i < lines.length; i++) {
+    while (i < lines.length) {
       const line = lines[i];
-      const trimmed = line.trim();
+      const weight = estimateLineWeight(line, prevLine, charsPerLine);
 
-      // Estimate visual lines occupied on the ruled notebook page
-      let lineWeight = 1;
-      if (trimmed === '') {
-        lineWeight = 1; // paragraph spacing
-      } else if (/^#\s/.test(trimmed)) {
-        lineWeight = 3; // H1 takes 2 line-heights + margin
-      } else if (/^#{2,3}\s/.test(trimmed)) {
-        lineWeight = 2; // H2/H3 takes 1 line-height + margin
-      } else if (/^[-*_]{3,}$/.test(trimmed)) {
-        lineWeight = 2; // horizontal rule
-      } else if (/^\|/.test(trimmed)) {
-        lineWeight = 1.2; // table row
-      } else {
-        // Standard text line wraps approx every 65 characters in handwriting font on A4/Letter
-        lineWeight = Math.max(1, Math.ceil(line.length / 65));
+      // Line fits on the current page
+      if (currentWeight + weight <= maxLinesPerPage) {
+        currentPageLines.push(line);
+        currentWeight += weight;
+        prevLine = line;
+        i++;
+        continue;
       }
 
-      // Check if adding this line would exceed the sheet limit
-      if (currentPageLines.length > 0 && currentWeight + lineWeight > maxLinesPerPage) {
-        finalPages.push(currentPageLines.join('\n').trim());
-        currentPageLines = [line];
-        currentWeight = lineWeight;
-      } else if (lineWeight > maxLinesPerPage) {
-        // A single paragraph or line exceeds the full page capacity
-        if (currentPageLines.length > 0) {
+      // Line exceeds current page capacity
+      const remaining = maxLinesPerPage - currentWeight;
+      const tr = line.trim();
+      const isHeading = tr.startsWith('#');
+      const isTable = tr.startsWith('|');
+      const renderedLen = getRenderedTextLength(line);
+
+      // If page still has lines available, split the text to utilize the remaining lines
+      if (!isHeading && !isTable && remaining >= 1.0 && renderedLen > charsPerLine * 1.2) {
+        const targetChars = Math.floor(remaining * charsPerLine);
+        const [part1, part2] = splitParagraphAtCapacity(line, targetChars);
+
+        if (part1 && part2 && part1.length > 0 && part2.length > 0) {
+          currentPageLines.push(part1);
           finalPages.push(currentPageLines.join('\n').trim());
-          currentPageLines = [];
-          currentWeight = 0;
+          currentPageLines = [part2];
+          currentWeight = estimateLineWeight(part2, '', charsPerLine);
+          prevLine = part2;
+          i++;
+          continue;
         }
-        const paragraphChunks = splitLongParagraph(line, maxLinesPerPage);
-        for (let c = 0; c < paragraphChunks.length - 1; c++) {
-          finalPages.push(paragraphChunks[c]);
-        }
-        currentPageLines = [paragraphChunks[paragraphChunks.length - 1]];
-        currentWeight = Math.max(1, Math.ceil(paragraphChunks[paragraphChunks.length - 1].length / 65));
+      }
+
+      // Finalize current page and start a fresh page
+      if (currentPageLines.length > 0) {
+        finalPages.push(currentPageLines.join('\n').trim());
+        currentPageLines = [];
+        currentWeight = 0;
+        prevLine = '';
       } else {
         currentPageLines.push(line);
-        currentWeight += lineWeight;
+        finalPages.push(currentPageLines.join('\n').trim());
+        currentPageLines = [];
+        currentWeight = 0;
+        prevLine = '';
+        i++;
       }
     }
 

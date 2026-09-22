@@ -8,6 +8,7 @@ import { ExportModal } from './components/ExportModal';
 import { ImportModal } from './components/ImportModal';
 import { HandwritingSettings, SampleTemplate, InsertionConfig } from './types';
 import { splitMarkdownIntoPages } from './utils/markdownParser';
+import { PAGE_DIMENSIONS } from './utils/paperStyles';
 
 const DEFAULT_SETTINGS: HandwritingSettings = {
   font: 'Caveat',
@@ -173,8 +174,8 @@ export const App: React.FC = () => {
 
         // If no manual pagebreak exists yet and document is long, partition using splitMarkdownIntoPages
         if (existingPages.length <= 1) {
-          const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
-          const autoPages = splitMarkdownIntoPages(prev, maxLines).filter(Boolean);
+          const { maxLines, charsPerLine } = getPageCapacity(settings);
+          const autoPages = splitMarkdownIntoPages(prev, maxLines, charsPerLine).filter(Boolean);
           if (autoPages.length > 1) {
             existingPages = autoPages;
           }
@@ -216,8 +217,8 @@ export const App: React.FC = () => {
 
       // If no explicit breaks exist yet and document is long, partition using splitMarkdownIntoPages
       if (existingPages.length <= 1) {
-        const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
-        const autoPages = splitMarkdownIntoPages(prev, maxLines).filter(Boolean);
+        const { maxLines, charsPerLine } = getPageCapacity(settings);
+        const autoPages = splitMarkdownIntoPages(prev, maxLines, charsPerLine).filter(Boolean);
         if (autoPages.length > 1) {
           existingPages = autoPages;
         }
