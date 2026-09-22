@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ScribeCraft - Markdown to Handwritten Notes</title>
+    <!-- Google Fonts for diverse realistic handwriting styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Caveat:wght@400..700&family=Cedarville+Cursive&family=Gloria+Hallelujah&family=Homemade+Apple&family=Indie+Flower&family=Just+Another+Hand&family=Kalam:wght@300;400;700&family=Marck+Script&family=Nanum+Pen+Script&family=Nothing+You+Could+Do&family=Patrick+Hand&family=Reenie+Beanie&family=Rock+Salt&family=Shadows+Into+Light&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-stone-900 text-stone-100 antialiased overflow-hidden select-none">
+    <div id="root"></div>
+    <!-- Hidden SVG Filter for Realistic Handwriting Wobble / Tremor effect -->
+    <svg style="display: none;">
+      <defs>
+        <filter id="handwriting-jitter" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="handwriting-jitter-subtle" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.9" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="handwriting-jitter-strong" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="4" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.8" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+    </svg>
+    <script type="module" src="/src/renderer/index.tsx"></script>
+  </body>
+</html>

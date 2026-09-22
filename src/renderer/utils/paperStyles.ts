@@ -1,0 +1,97 @@
+import { HandwritingFont, PaperType, HandwritingSettings } from '../types';
+
+export interface FontOption {
+  id: HandwritingFont;
+  name: string;
+  category: 'Casual Print' | 'Neat Handwriting' | 'Cursive & Script' | 'Architect / Technical' | 'Chalk & Marker';
+  preview: string;
+}
+
+export const HANDWRITING_FONTS: FontOption[] = [
+  { id: 'Caveat', name: 'Caveat', category: 'Neat Handwriting', preview: 'The quick brown fox jumps over the lazy dog' },
+  { id: 'Patrick Hand', name: 'Patrick Hand', category: 'Casual Print', preview: 'Clean and friendly student notebook handwriting' },
+  { id: 'Shadows Into Light', name: 'Shadows Into Light', category: 'Neat Handwriting', preview: 'Graceful feminine rounded strokes' },
+  { id: 'Indie Flower', name: 'Indie Flower', category: 'Casual Print', preview: 'Bubbly, relaxed, cheerful handwriting' },
+  { id: 'Homemade Apple', name: 'Homemade Apple', category: 'Cursive & Script', preview: 'Classic flowing penmanship and cursive script' },
+  { id: 'Architects Daughter', name: 'Architects Daughter', category: 'Architect / Technical', preview: 'Crisp drafting handwriting of an architect' },
+  { id: 'Kalam', name: 'Kalam', category: 'Casual Print', preview: 'Expressive ballpoint pen lettering' },
+  { id: 'Cedarville Cursive', name: 'Cedarville Cursive', category: 'Cursive & Script', preview: 'Fast, authentic cursive pen flow' },
+  { id: 'Marck Script', name: 'Marck Script', category: 'Cursive & Script', preview: 'Elegant fountain pen signature style' },
+  { id: 'Gloria Hallelujah', name: 'Gloria Hallelujah', category: 'Chalk & Marker', preview: 'Bold and lively blackboard chalk style' },
+  { id: 'Reenie Beanie', name: 'Reenie Beanie', category: 'Casual Print', preview: 'Quick casual scribbler jotting notes' },
+  { id: 'Nothing You Could Do', name: 'Nothing You Could Do', category: 'Casual Print', preview: 'Raw, authentic, energetic scribbles' },
+  { id: 'Rock Salt', name: 'Rock Salt', category: 'Chalk & Marker', preview: 'Felt-tip marker and bold whiteboard writing' },
+  { id: 'Just Another Hand', name: 'Just Another Hand', category: 'Casual Print', preview: 'Tall and narrow spontaneous handwriting' },
+  { id: 'Nanum Pen Script', name: 'Nanum Pen Script', category: 'Casual Print', preview: 'Delicate fountain pen lettering' },
+];
+
+export interface PaperOption {
+  id: PaperType;
+  name: string;
+  description: string;
+  bgColor: string;
+  lineDescription: string;
+}
+
+export const PAPER_TYPES: PaperOption[] = [
+  { id: 'ruled', name: 'Classic Ruled', description: 'Standard blue lines with red left margin', bgColor: '#fdfbf7', lineDescription: '32px horizontal ruling' },
+  { id: 'college', name: 'College Ruled', description: 'Tighter blue lines with red margin', bgColor: '#fafbfc', lineDescription: '26px narrow ruling' },
+  { id: 'grid', name: 'Engineering Grid', description: 'Graph squared paper for math and drawings', bgColor: '#fcfcfb', lineDescription: 'Squared grid pattern' },
+  { id: 'dots', name: 'Bullet Journal (Dots)', description: 'Subtle dot matrix for flexible notes', bgColor: '#fcfbf9', lineDescription: 'Dot grid matrix' },
+  { id: 'legal', name: 'Yellow Legal Pad', description: 'Canary yellow paper with double red margin', bgColor: '#fef8d8', lineDescription: 'Classic attorney legal pad' },
+  { id: 'parchment', name: 'Vintage Parchment', description: 'Warm sepia aged manuscript paper', bgColor: '#f5eedc', lineDescription: 'Antique warm lined texture' },
+  { id: 'blank', name: 'Clean Blank Sheet', description: 'Minimalist white stationery without lines', bgColor: '#ffffff', lineDescription: 'Unruled paper' },
+  { id: 'chalkboard', name: 'Slate Chalkboard', description: 'Dark slate background for chalk notes', bgColor: '#1e293b', lineDescription: 'Subtle chalk guide lines' },
+];
+
+export interface InkColorOption {
+  name: string;
+  hex: string;
+}
+
+export const INK_COLORS: InkColorOption[] = [
+  { name: 'Royal Blue', hex: '#1e3a8a' },
+  { name: 'Classic Navy', hex: '#172554' },
+  { name: 'Gel Pen Black', hex: '#18181b' },
+  { name: 'Graphite Pencil', hex: '#4b5563' },
+  { name: 'Teacher Red', hex: '#b91c1c' },
+  { name: 'Forest Emerald', hex: '#065f46' },
+  { name: 'Royal Purple', hex: '#6b21a8' },
+  { name: 'Sepia Brown', hex: '#78350f' },
+  { name: 'Chalk White', hex: '#f8fafc' },
+];
+
+export const DEFAULT_SETTINGS: HandwritingSettings = {
+  font: 'Caveat',
+  fontSize: 20,
+  lineHeight: 32,
+  letterSpacing: 0.5,
+  wordSpacing: 2,
+  inkColor: '#1e3a8a',
+  penThickness: 'regular',
+  paperType: 'ruled',
+  jitter: 'subtle',
+  pageSize: 'A4',
+  orientation: 'portrait',
+  showMarginLine: true,
+  marginLineWidth: 75,
+  showHoles: true,
+  showHeader: true,
+  headerDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  headerSubject: 'Notes & Ideas',
+  showPageNumbers: true,
+  pageNumberStyle: 'page-x',
+  slant: 0,
+};
+
+// Dimensions in pixels for standard screen rendering (exact 1:1.414 ratio for A4)
+export const PAGE_DIMENSIONS = {
+  A4: {
+    portrait: { width: 794, height: 1123 }, // standard 96 DPI A4
+    landscape: { width: 1123, height: 794 },
+  },
+  Letter: {
+    portrait: { width: 816, height: 1056 }, // standard 96 DPI Letter
+    landscape: { width: 1056, height: 816 },
+  },
+};

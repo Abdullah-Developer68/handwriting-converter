@@ -1,0 +1,374 @@
+/* ==========================================================================
+   Handwriting & Paper Realism Stylesheet
+   ========================================================================== */
+
+:root {
+  --line-height: 32px;
+  --font-size: 19px;
+  --ink-color: #1e3a8a;
+  --margin-left: 70px;
+}
+
+/* Base Paper Container */
+.paper-sheet {
+  position: relative;
+  box-sizing: border-box;
+  background-color: #fcfbf7;
+  color: var(--ink-color);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35), 0 0 1px 1px rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  transition: transform 0.15s ease;
+  overflow: hidden;
+}
+
+/* Paper Types */
+/* 1. Classic Ruled */
+.paper-sheet.paper-ruled {
+  background-color: #fdfbf7;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(var(--line-height) - 1px),
+    rgba(147, 197, 253, 0.6) calc(var(--line-height) - 1px),
+    rgba(147, 197, 253, 0.6) var(--line-height)
+  );
+  background-attachment: local;
+}
+
+/* 2. College Ruled (Crisper lines, slightly cooler paper) */
+.paper-sheet.paper-college {
+  background-color: #fafbfc;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(var(--line-height) - 1px),
+    rgba(186, 215, 248, 0.75) calc(var(--line-height) - 1px),
+    rgba(186, 215, 248, 0.75) var(--line-height)
+  );
+  background-attachment: local;
+}
+
+/* 3. Grid / Graph Paper */
+.paper-sheet.paper-grid {
+  background-color: #fcfcfb;
+  background-size: var(--line-height) var(--line-height);
+  background-image: 
+    linear-gradient(to right, rgba(165, 180, 252, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(165, 180, 252, 0.35) 1px, transparent 1px);
+}
+
+/* 4. Dotted Bullet Journal */
+.paper-sheet.paper-dots {
+  background-color: #fcfbf9;
+  background-size: var(--line-height) var(--line-height);
+  background-image: radial-gradient(rgba(100, 116, 139, 0.45) 1.5px, transparent 1.5px);
+}
+
+/* 5. Yellow Legal Pad */
+.paper-sheet.paper-legal {
+  background-color: #fef8d8;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(var(--line-height) - 1px),
+    rgba(156, 163, 175, 0.5) calc(var(--line-height) - 1px),
+    rgba(156, 163, 175, 0.5) var(--line-height)
+  );
+}
+
+/* 6. Vintage Parchment */
+.paper-sheet.paper-parchment {
+  background-color: #f5eedc;
+  background-image: 
+    radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, rgba(180,150,110,0.15) 100%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent calc(var(--line-height) - 1px),
+      rgba(180, 140, 100, 0.3) calc(var(--line-height) - 1px),
+      rgba(180, 140, 100, 0.3) var(--line-height)
+    );
+}
+
+/* 7. Clean Blank Paper */
+.paper-sheet.paper-blank {
+  background-color: #ffffff;
+  background-image: none;
+}
+
+/* 8. Dark Chalkboard */
+.paper-sheet.paper-chalkboard {
+  background-color: #1e293b;
+  color: #f1f5f9 !important;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(var(--line-height) - 1px),
+    rgba(255, 255, 255, 0.12) calc(var(--line-height) - 1px),
+    rgba(255, 255, 255, 0.12) var(--line-height)
+  );
+}
+
+/* Vertical Margin Line (Red margin) */
+.paper-margin-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--margin-left);
+  width: 2px;
+  background-color: rgba(239, 68, 68, 0.6);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.paper-sheet.paper-legal .paper-margin-line {
+  background-color: rgba(220, 38, 38, 0.7);
+  box-shadow: 3px 0 0 rgba(220, 38, 38, 0.4);
+}
+
+/* Left Binder Hole Punches */
+.paper-hole-punch {
+  position: absolute;
+  left: 20px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #262626;
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0,0,0,0.2);
+  z-index: 15;
+  pointer-events: none;
+}
+
+.paper-hole-top { top: 15%; }
+.paper-hole-mid { top: 50%; transform: translateY(-50%); }
+.paper-hole-bot { bottom: 15%; }
+
+/* Natural Jitter Filter Classes */
+.jitter-subtle {
+  filter: url(#handwriting-jitter-subtle);
+}
+.jitter-medium {
+  filter: url(#handwriting-jitter);
+}
+.jitter-strong {
+  filter: url(#handwriting-jitter-strong);
+}
+
+/* Handwriting Typography Rendering */
+.handwriting-content {
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--ink-color);
+  word-break: break-word;
+}
+
+.handwriting-content h1,
+.handwriting-content h2,
+.handwriting-content h3,
+.handwriting-content h4,
+.handwriting-content p,
+.handwriting-content ul,
+.handwriting-content ol,
+.handwriting-content blockquote,
+.handwriting-content table {
+  margin-top: 0;
+  margin-bottom: var(--line-height);
+}
+
+/* Heading Sizes */
+.handwriting-content h1 {
+  font-size: 1.85em;
+  line-height: calc(var(--line-height) * 1.5);
+  font-weight: 700;
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 4px;
+  margin-bottom: var(--line-height);
+}
+
+.handwriting-content h2 {
+  font-size: 1.45em;
+  line-height: calc(var(--line-height) * 1.25);
+  font-weight: 600;
+  border-bottom: 1.5px dashed currentColor;
+  padding-bottom: 2px;
+  margin-top: calc(var(--line-height) * 0.5);
+}
+
+.handwriting-content h3 {
+  font-size: 1.2em;
+  line-height: var(--line-height);
+  font-weight: 600;
+}
+
+.handwriting-content blockquote {
+  padding-left: 16px;
+  border-left: 3px solid currentColor;
+  opacity: 0.9;
+  font-style: italic;
+}
+
+.handwriting-content ul,
+.handwriting-content ol {
+  padding-left: 28px;
+}
+
+.handwriting-content li {
+  line-height: var(--line-height);
+  margin-bottom: 4px;
+}
+
+/* Handwritten Checkboxes */
+.handwriting-content .task-list-item {
+  list-style-type: none;
+  position: relative;
+  padding-left: 4px;
+}
+
+.handwriting-content .handwritten-checkbox {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.handwriting-content .handwritten-checkbox.checked::after {
+  content: "✓";
+  position: absolute;
+  top: -5px;
+  left: 1px;
+  font-size: 16px;
+  font-weight: bold;
+  color: currentColor;
+}
+
+/* Handwritten Tables */
+.handwriting-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--line-height) 0;
+}
+
+.handwriting-content th,
+.handwriting-content td {
+  border: 1.5px solid currentColor;
+  padding: 6px 12px;
+  text-align: left;
+}
+
+.handwriting-content th {
+  background-color: rgba(0, 0, 0, 0.04);
+  font-weight: bold;
+}
+
+/* Code Snippets (neatly boxed handwritten code) */
+.handwriting-content pre {
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1.5px dashed currentColor;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: var(--line-height) 0;
+  white-space: pre-wrap;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.handwriting-content code {
+  font-family: 'JetBrains Mono', monospace;
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* Highlighter markup */
+.handwriting-content mark,
+.handwriting-content .highlight-yellow {
+  background-color: rgba(253, 224, 71, 0.45);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.handwriting-content .highlight-green {
+  background-color: rgba(134, 239, 172, 0.45);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.handwriting-content .highlight-pink {
+  background-color: rgba(244, 114, 182, 0.4);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* Pen Thickness variations */
+.pen-fine {
+  font-weight: 300;
+  text-shadow: 0 0 0.2px currentColor;
+}
+.pen-regular {
+  font-weight: 400;
+}
+.pen-medium {
+  font-weight: 600;
+  text-shadow: 0 0 0.5px currentColor;
+}
+.pen-bold {
+  font-weight: 700;
+  text-shadow: 0 0 0.8px currentColor;
+}
+
+/* ==========================================================================
+   PRINT MEDIA STYLES (Strict high-res PDF generation)
+   ========================================================================== */
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide app chrome during printing */
+  .no-print,
+  .app-header,
+  .app-sidebar,
+  .editor-pane,
+  .toolbar-container,
+  .modal-overlay,
+  button,
+  .preview-zoom-controls {
+    display: none !important;
+  }
+
+  /* Show only the printable sheets container */
+  #printable-area {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .paper-sheet {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    width: 100% !important;
+    height: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .paper-sheet:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
