@@ -75,9 +75,9 @@ export const Editor: React.FC<EditorProps> = ({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* Markdown Toolbar */}
-      <div className="toolbar-container no-print">
-        <div className="toolbar-group">
+      {/* Markdown Toolbar - Arranged Horizontally */}
+      <div className="editor-header toolbar-container no-print">
+        <div className="editor-toolbar-actions toolbar-group">
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => insertTextAtCursor('**', '**', 'bold text')}

@@ -184,12 +184,15 @@ body {
   container-name: editor;
 }
 
-/* Sub-toolbar inside Editor */
-.editor-header {
+/* Sub-toolbar inside Editor - Arranged Horizontally */
+.editor-header,
+.toolbar-container {
   height: 38px;
   background-color: #202024;
   border-bottom: 1px solid #27272a;
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   align-items: center;
   justify-content: space-between;
   padding: 0 8px 0 10px;
@@ -199,8 +202,11 @@ body {
   user-select: none;
 }
 
-.editor-toolbar-actions {
-  display: flex;
+.editor-toolbar-actions,
+.toolbar-group {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   align-items: center;
   gap: 2px;
   overflow-x: auto;
@@ -213,19 +219,24 @@ body {
   -ms-overflow-style: none;
 }
 
-.editor-toolbar-actions::-webkit-scrollbar {
+.editor-toolbar-actions::-webkit-scrollbar,
+.toolbar-group::-webkit-scrollbar {
   display: none;
 }
 
-.editor-toolbar-actions .btn {
+.editor-toolbar-actions .btn,
+.toolbar-group .btn {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
 }
 
 .toolbar-divider {
+  display: inline-block !important;
   width: 1px;
   height: 14px;
   background-color: #3f3f46;
-  margin: 0 3px;
+  margin: 0 4px;
   flex-shrink: 0;
 }
 
