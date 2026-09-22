@@ -3,49 +3,70 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 
 let mainWindow: BrowserWindow | null = null;
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+const isDev = process.env.NODE_ENV === 'development';
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1380,
+    width: 1400,
     height: 900,
     minWidth: 1000,
     minHeight: 700,
-    title: 'ScribeCraft - Markdown to Handwritten Notes',
-    backgroundColor: '#1c1917',
+    title: 'ScribeCraft — Markdown to Handwritten Notes Converter',
+    backgroundColor: '#18181b',
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
+      webSecurity: true,
     },
+    titleBarStyle: 'default',
     show: false,
   });
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-  });
-
+  // Load index.html or dev server
   if (isDev && process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
+
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+// Ensure single instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
   });
-});
+
+  app.whenReady().then(() => {
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -53,7 +74,11 @@ app.on('window-all-closed', () => {
   }
 });
 
-// IPC Handler: Open File
+// ============================================================================
+// IPC Handlers
+// ============================================================================
+
+// IPC Handler: Open Markdown File
 ipcMain.handle('dialog:openFile', async () => {
   if (!mainWindow) return null;
 
@@ -61,7 +86,7 @@ ipcMain.handle('dialog:openFile', async () => {
     title: 'Open Markdown File',
     properties: ['openFile'],
     filters: [
-      { name: 'Markdown & Text Files', extensions: ['md', 'markdown', 'txt', 'rmd'] },
+      { name: 'Markdown Files', extensions: ['md', 'markdown', 'mdown', 'mkdn', 'txt'] },
       { name: 'All Files', extensions: ['*'] },
     ],
   });
@@ -74,7 +99,7 @@ ipcMain.handle('dialog:openFile', async () => {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     const filename = path.basename(filePath);
-    return { content, filename, path: filePath };
+    return { content, path: filePath, filename };
   } catch (error) {
     console.error('Failed to read file:', error);
     throw error;
@@ -108,7 +133,7 @@ ipcMain.handle('dialog:saveFile', async (_, { content, defaultPath }: { content:
   }
 });
 
-// IPC Handler: Export to PDF
+// IPC Handler: Export to PDF (Supports multi-page export)
 ipcMain.handle('export:pdf', async (_, options: { pageSize: string; landscape: boolean; printBackground: boolean }) => {
   if (!mainWindow) return { success: false, error: 'Window not found' };
 
@@ -134,7 +159,7 @@ ipcMain.handle('export:pdf', async (_, options: { pageSize: string; landscape: b
         left: 0,
         right: 0,
       },
-      preferCSSPageSize: true,
+      preferCSSPageSize: false,
     });
 
     await fs.writeFile(result.filePath, pdfData);

@@ -46,10 +46,11 @@ export const App: React.FC = () => {
     localStorage.setItem('scribecraft_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // Split markdown into pages
+  // Split markdown into pages (automatically paginates whenever content exceeds 1 sheet)
   const pages = useMemo(() => {
-    return splitMarkdownIntoPages(markdown);
-  }, [markdown]);
+    const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
+    return splitMarkdownIntoPages(markdown, maxLines);
+  }, [markdown, settings.lineHeight]);
 
   // Word count
   const wordCount = useMemo(() => {
@@ -119,7 +120,23 @@ export const App: React.FC = () => {
     }
   };
 
-  // Handle dropped file
+  // Save As file handler
+  const handleSaveAsFile = async () => {
+    if (window.electronAPI) {
+      try {
+        const result = await window.electronAPI.saveFile(markdown);
+        if (result.success && result.path) {
+          setCurrentFilePath(result.path);
+          const name = result.path.split(/[\\/]/).pop() || currentFileName;
+          setCurrentFileName(name);
+        }
+      } catch (err) {
+        console.error('Failed to save file as:', err);
+      }
+    }
+  };
+
+  // File drag & drop onto editor
   const handleDropFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -127,25 +144,24 @@ export const App: React.FC = () => {
       if (content !== undefined) {
         setMarkdown(content);
         setCurrentFileName(file.name);
+        setCurrentFilePath(null);
       }
     };
     reader.readAsText(file);
   };
 
-  // Handle select template
+  // Select sample template
   const handleSelectTemplate = (template: SampleTemplate) => {
     setMarkdown(template.markdown);
+    setSettings((prev) => ({
+      ...prev,
+      ...template.recommendedSettings,
+    }));
     setCurrentFileName(`${template.id}.md`);
-    if (template.recommendedSettings) {
-      setSettings((prev) => ({
-        ...prev,
-        ...template.recommendedSettings,
-        headerSubject: template.title,
-      }));
-    }
+    setCurrentFilePath(null);
   };
 
-  // Global Keyboard shortcuts
+  // Global Keyboard Shortcuts (Ctrl+S, Ctrl+O, Ctrl+E)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -168,29 +184,30 @@ export const App: React.FC = () => {
     <div className="app-layout">
       {/* Top Application Header */}
       <Header
+        fileName={currentFileName}
+        filePath={currentFilePath}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onOpenFile={handleOpenFile}
         onSaveFile={handleSaveFile}
+        onSaveAsFile={handleSaveAsFile}
         onOpenTemplates={() => setIsTemplatesOpen(true)}
-        onExportPdf={() => setIsExportOpen(true)}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
+        onOpenExport={() => setIsExportOpen(true)}
+        onResetSettings={handleResetSettings}
         pageCount={pages.length}
-        wordCount={wordCount}
-        currentFileName={currentFileName}
       />
 
-      {/* Main Workspace Area */}
+      {/* Main Content Workspace */}
       <div className="workspace-container">
-        {/* Editor Pane (Hidden in Preview-only mode) */}
         {viewMode !== 'preview' && (
           <Editor
-            value={markdown}
+            markdown={markdown}
             onChange={setMarkdown}
             onDropFile={handleDropFile}
+            wordCount={wordCount}
           />
         )}
 
-        {/* Paper Live Preview Pane (Hidden in Editor-only mode) */}
         {viewMode !== 'editor' && (
           <PaperPreview
             pages={pages}
@@ -200,14 +217,10 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Handwriting Styles & Paper Configuration Toolbar */}
-        {viewMode !== 'editor' && (
-          <StyleToolbar
-            settings={settings}
-            onChange={handleUpdateSettings}
-            onReset={handleResetSettings}
-          />
-        )}
+        <StyleToolbar
+          settings={settings}
+          onChange={handleUpdateSettings}
+        />
       </div>
 
       {/* Templates Modal */}

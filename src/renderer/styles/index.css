@@ -61,6 +61,7 @@ body {
   flex: 1;
   overflow: hidden;
   position: relative;
+  height: calc(100vh - 52px);
 }
 
 /* Editor Pane */
@@ -134,20 +135,62 @@ body {
   gap: 32px;
 }
 
-/* Sidebar Settings */
-.settings-sidebar {
-  width: 330px;
+/* Sidebar Settings - Fully Scrollable */
+.settings-sidebar,
+.app-sidebar {
+  width: 340px;
+  min-width: 340px;
+  max-width: 340px;
+  height: 100%;
+  max-height: 100%;
   background-color: #1c1c20;
   border-left: 1px solid #27272a;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow-y: auto !important;
+  overflow-x: hidden;
   z-index: 25;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.app-sidebar::-webkit-scrollbar,
+.settings-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+.app-sidebar::-webkit-scrollbar-track,
+.settings-sidebar::-webkit-scrollbar-track {
+  background: #18181b;
+}
+.app-sidebar::-webkit-scrollbar-thumb,
+.settings-sidebar::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 4px;
+}
+.app-sidebar::-webkit-scrollbar-thumb:hover,
+.settings-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #6366f1;
+}
+
+.sidebar-section-title {
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f4f4f5;
+  border-bottom: 1px solid #27272a;
+  background-color: #18181b;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 .settings-group {
   padding: 16px;
   border-bottom: 1px solid #27272a;
+  flex-shrink: 0;
 }
 
 .settings-group-title {
@@ -224,35 +267,30 @@ body {
   border-color: #6366f1;
 }
 
-/* Sliders */
-input[type="range"] {
-  accent-color: #6366f1;
-}
-
-/* Modal Overlay */
+/* Modals */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: 20px;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .modal-content {
-  background-color: #1c1c20;
+  background-color: #18181b;
   border: 1px solid #27272a;
   border-radius: 12px;
-  width: 100%;
-  max-width: 650px;
+  width: 90%;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideUp 0.15s ease-out;
 }
 
 .modal-header {
@@ -266,23 +304,25 @@ input[type="range"] {
 .modal-body {
   padding: 20px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .modal-footer {
   padding: 14px 20px;
   border-top: 1px solid #27272a;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  background-color: #121214;
 }
 
-/* Tooltip Badge */
-.badge {
-  display: inline-block;
-  padding: 2px 6px;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 4px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }

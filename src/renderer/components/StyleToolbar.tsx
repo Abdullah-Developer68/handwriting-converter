@@ -18,7 +18,7 @@ interface StyleToolbarProps {
 
 export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange }) => {
   return (
-    <div className="app-sidebar no-print">
+    <div className="app-sidebar no-print" style={{ paddingBottom: '32px' }}>
       <div className="sidebar-section-title">
         <span>Style & Stationery</span>
       </div>
