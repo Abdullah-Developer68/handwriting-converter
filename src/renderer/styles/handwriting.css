@@ -179,6 +179,14 @@
   user-select: text;
 }
 
+.handwriting-content > *:first-child {
+  margin-top: 0 !important;
+}
+
+.handwriting-content > *:last-child {
+  margin-bottom: 0 !important;
+}
+
 .handwriting-content p {
   margin: 0;
   margin-bottom: var(--line-height);
@@ -196,7 +204,6 @@
   border-bottom: 2px solid currentColor;
   box-sizing: border-box;
   margin: 0;
-  margin-top: var(--line-height);
   margin-bottom: var(--line-height);
   display: flex;
   align-items: flex-end;
@@ -211,7 +218,6 @@
   border-bottom: 1.5px dashed currentColor;
   box-sizing: border-box;
   margin: 0;
-  margin-top: var(--line-height);
   margin-bottom: var(--line-height);
   display: flex;
   align-items: flex-end;
@@ -224,6 +230,16 @@
   font-weight: 600;
   margin: 0;
   margin-bottom: var(--line-height);
+}
+
+.handwriting-content hr {
+  border: none;
+  border-top: 1.5px solid currentColor;
+  opacity: 0.5;
+  height: 0;
+  margin: 0;
+  margin-bottom: var(--line-height);
+  box-sizing: border-box;
 }
 
 /* Blockquotes */
@@ -422,6 +438,50 @@
   box-sizing: border-box !important;
 }
 
+/* Header (Date & Subject) inside top margin line */
+.paper-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--line-height);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 24px;
+  padding: 0 48px;
+  font-size: calc(var(--font-size) * 0.85);
+  line-height: var(--line-height);
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.paper-header-date,
+.paper-header-subject {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.paper-header-value {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Page Number at bottom right margin */
+.paper-page-number {
+  position: absolute;
+  bottom: 4px;
+  right: 24px;
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 5;
+}
+
 /* ==========================================================================
    PRINT MEDIA STYLES (Strict high-res PDF multi-page generation)
    ========================================================================== */
@@ -474,7 +534,8 @@
   }
 
   /* Show only the printable sheets container without transforms or gap */
-  #printable-area {
+  #printable-area,
+  .sheets-wrapper {
     display: block !important;
     position: static !important;
     width: 100% !important;
@@ -482,7 +543,17 @@
     margin: 0 !important;
     padding: 0 !important;
     transform: none !important;
+    zoom: 1 !important;
     gap: 0 !important;
+  }
+
+  .sheets-wrapper > div,
+  .sheet-container {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .paper-sheet {

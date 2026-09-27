@@ -48,6 +48,28 @@ export const FONT_BASELINE_OFFSETS: Record<HandwritingFont, number> = {
 };
 
 /**
+ * Calibrated character width ratios for handwriting fonts.
+ * Multiplied by font size to obtain the effective average character advance in pixels.
+ */
+export const FONT_WIDTH_RATIOS: Record<HandwritingFont, number> = {
+  'Just Another Hand': 0.27,
+  'Reenie Beanie': 0.35,
+  'Nanum Pen Script': 0.36,
+  'Caveat': 0.39,
+  'Patrick Hand': 0.40,
+  'Shadows Into Light': 0.40,
+  'Marck Script': 0.41,
+  'Indie Flower': 0.43,
+  'Kalam': 0.43,
+  'Cedarville Cursive': 0.46,
+  'Architects Daughter': 0.48,
+  'Nothing You Could Do': 0.49,
+  'Gloria Hallelujah': 0.50,
+  'Homemade Apple': 0.54,
+  'Rock Salt': 0.61,
+};
+
+/**
  * Computes the total vertical shift needed to position words on the line space
  * right above the bottom line for any font, font size, and line height.
  */
@@ -148,14 +170,19 @@ export function getPageCapacity(settings: HandwritingSettings): { maxLines: numb
   const pageDims = PAGE_DIMENSIONS[pageSize][orientation];
 
   const lineHeight = settings?.lineHeight || 32;
-  const availHeight = pageDims.height - (settings?.showHeader ? 120 : 80);
+  // Content padding-top is 1 line height (top margin).
+  // All remaining ruled lines down to the bottom of the paper sheet are fully utilized.
+  const availHeight = pageDims.height - lineHeight;
   const maxLines = Math.max(16, Math.floor(availHeight / lineHeight));
 
   const marginLeft = settings?.showMarginLine ? (settings?.marginLineWidth || 70) + 16 : 48;
   const availWidth = pageDims.width - marginLeft - 48;
+  const font = settings?.font || 'Caveat';
+  const widthRatio = (FONT_WIDTH_RATIOS as Record<string, number>)[font] ?? 0.39;
   const fontSize = settings?.fontSize || 20;
-  const charWidth = Math.max(8, fontSize * 0.52);
-  const charsPerLine = Math.max(40, Math.floor(availWidth / charWidth));
+  const letterSpacing = settings?.letterSpacing || 0;
+  const charWidth = Math.max(5, fontSize * widthRatio + letterSpacing);
+  const charsPerLine = Math.max(35, Math.floor(availWidth / charWidth));
 
   return { maxLines, charsPerLine };
 }

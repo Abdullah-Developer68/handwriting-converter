@@ -27,17 +27,11 @@ export const App: React.FC = () => {
   const [droppedImportFile, setDroppedImportFile] = useState<File | null>(null);
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
 
-  // Compute pages based on settings and manual pagebreaks
+  // Compute pages based on settings and paper line capacity
   const pages = useMemo(() => {
-    // Check for explicit manual pagebreaks first
-    if (PAGEBREAK_REGEX.test(markdown)) {
-      return markdown.split(PAGEBREAK_REGEX).map((p) => p.trim()).filter(Boolean);
-    }
-
-    // Otherwise split logically based on line height and paper height
-    const maxLines = Math.max(18, Math.floor(860 / (settings.lineHeight || 32)));
-    return splitMarkdownIntoPages(markdown, maxLines);
-  }, [markdown, settings.lineHeight]);
+    const { maxLines, charsPerLine } = getPageCapacity(settings);
+    return splitMarkdownIntoPages(markdown, maxLines, charsPerLine);
+  }, [markdown, settings]);
 
   // Handle open file
   const handleOpenFile = async () => {

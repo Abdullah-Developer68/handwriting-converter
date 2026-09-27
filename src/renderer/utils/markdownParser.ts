@@ -26,12 +26,18 @@ export function preprocessMarkdown(markdown: string): string {
 /**
  * Strips inline markdown markup symbols to compute actual visible rendered text length
  */
+/**
+ * Strips inline markdown markup symbols to compute actual visible rendered text length
+ */
 function getRenderedTextLength(text: string): number {
   return text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
     .replace(/_([^_]+)_/g, '$1')
+    .replace(/==pink:([^=]+)==/g, '$1')
+    .replace(/==green:([^=]+)==/g, '$1')
+    .replace(/==blue:([^=]+)==/g, '$1')
     .replace(/==([^=]+)==/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
@@ -39,77 +45,107 @@ function getRenderedTextLength(text: string): number {
 }
 
 /**
- * Estimates line weight in terms of notebook line units
+ * Checks if a line is a markdown table separator/alignment row, e.g. | :--- | :---: |
  */
-function estimateLineWeight(line: string, prevLine: string, charsPerLine: number): number {
+function isTableSeparator(line: string): boolean {
   const trimmed = line.trim();
-  if (!trimmed) {
-    // Blank line after heading or at the start of a page doesn't occupy extra lines
-    if (!prevLine || prevLine.trim().startsWith('#')) {
-      return 0;
-    }
-    return 0.8;
-  }
-
-  if (trimmed.startsWith('# ')) {
-    return 2.5; // H1
-  }
-  if (trimmed.startsWith('## ')) {
-    return 2.0; // H2
-  }
-  if (trimmed.startsWith('### ')) {
-    return 1.5; // H3
-  }
-  if (/^[-*_]{3,}$/.test(trimmed)) {
-    return 1.5; // horizontal rule
-  }
-  if (trimmed.startsWith('|')) {
-    return 1.2; // table row
-  }
-
-  const renderedLen = getRenderedTextLength(line);
-  return Math.max(1.0, Math.ceil(renderedLen / charsPerLine));
+  return trimmed.includes('|') && /^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?$/.test(trimmed);
 }
 
 /**
- * Splits a paragraph cleanly at a sentence or clause boundary to fill all remaining lines on a page
+ * Estimates line weight in terms of discrete notebook line units
  */
-function splitParagraphAtCapacity(text: string, targetChars: number): [string, string] {
-  const minSplit = Math.floor(targetChars * 0.55);
+function estimateLineWeight(line: string, prevLine: string, nextLine: string, charsPerLine: number): number {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    // Blank line after heading, at start of page, or duplicate blank line doesn't occupy extra lines
+    if (!prevLine || prevLine.trim() === '' || prevLine.trim().startsWith('#')) {
+      return 0;
+    }
+    // Blank line immediately before a heading: HTML headers already provide clear vertical rhythm without extra line height
+    if (nextLine && nextLine.trim().startsWith('#')) {
+      return 0;
+    }
+    // Blank line immediately before or after a horizontal rule
+    if (/^[-*_]{3,}$/.test(prevLine.trim())) {
+      return 0;
+    }
+    if (nextLine && /^[-*_]{3,}$/.test(nextLine.trim())) {
+      return 0;
+    }
+    return 1;
+  }
 
-  // Try sentence boundary (. ! ?)
+  // Table separator row doesn't render as a visible row in HTML
+  if (isTableSeparator(trimmed)) {
+    return 0;
+  }
+
+  if (trimmed.startsWith('# ')) {
+    return 3; // H1: 2 line-heights + 1 line margin below
+  }
+  if (/^#{2,6}\s/.test(trimmed)) {
+    return 2; // H2-H6: 1 line-height + 1 line margin below
+  }
+  if (/^[-*_]{3,}$/.test(trimmed)) {
+    return 1; // Horizontal rule: 1 line
+  }
+  if (trimmed.startsWith('|')) {
+    return 1; // Table row: 1 line
+  }
+
+  const renderedLen = getRenderedTextLength(line);
+  // Opening line naturally holds ~15% more characters before first word wrap
+  const firstLineBonus = Math.round(charsPerLine * 0.15);
+  if (renderedLen <= charsPerLine + firstLineBonus) {
+    return 1;
+  }
+  return Math.max(1, Math.ceil((renderedLen - firstLineBonus) / charsPerLine));
+}
+
+/**
+ * Splits a paragraph cleanly at a sentence, clause, or word boundary to fill all remaining lines on a page.
+ * To ensure the bottom section of the page is NOT left empty, the split MUST target the final available line.
+ */
+function splitParagraphAtCapacity(text: string, targetChars: number, charsPerLine: number): [string, string] {
+  if (!text || targetChars <= 0) return ['', text];
+  if (text.length <= targetChars) return [text, ''];
+
+  // The final line on the page spans [targetChars - charsPerLine, targetChars]
+  // We prefer boundaries that fall on this final line to maximize utilization without overflowing.
+  const finalLineStart = Math.max(0, targetChars - charsPerLine);
+
+  // 1. Try sentence boundary (. ! ?) on the final line
   const sentenceMatches = [...text.slice(0, targetChars).matchAll(/[.!?]\s+/g)];
-  if (sentenceMatches.length > 0) {
-    const last = sentenceMatches[sentenceMatches.length - 1];
-    const end = (last.index ?? 0) + last[0].length;
-    if (end >= minSplit) {
+  for (let s = sentenceMatches.length - 1; s >= 0; s--) {
+    const end = (sentenceMatches[s].index ?? 0) + sentenceMatches[s][0].length;
+    if (end >= finalLineStart) {
       return [text.slice(0, end).trimEnd(), text.slice(end).trimStart()];
     }
   }
 
-  // Try punctuation boundary (, ; :)
-  const punctMatches = [...text.slice(0, targetChars).matchAll(/[,;:]\s+/g)];
-  if (punctMatches.length > 0) {
-    const last = punctMatches[punctMatches.length - 1];
-    const end = (last.index ?? 0) + last[0].length;
-    if (end >= minSplit) {
+  // 2. Try punctuation / clause boundary (, ; : —) on the final line
+  const punctMatches = [...text.slice(0, targetChars).matchAll(/[,;:\u2014]\s+/g)];
+  for (let p = punctMatches.length - 1; p >= 0; p--) {
+    const end = (punctMatches[p].index ?? 0) + punctMatches[p][0].length;
+    if (end >= finalLineStart) {
       return [text.slice(0, end).trimEnd(), text.slice(end).trimStart()];
     }
   }
 
-  // Try word boundary
+  // 3. Try word boundary on the final line (closest to targetChars without exceeding)
   const lastSpace = text.slice(0, targetChars).lastIndexOf(' ');
-  if (lastSpace >= minSplit) {
+  if (lastSpace >= finalLineStart) {
     return [text.slice(0, lastSpace).trimEnd(), text.slice(lastSpace + 1).trimStart()];
   }
 
-  // Fallback to closest word boundary forward
-  const nextSpace = text.indexOf(' ', targetChars);
-  if (nextSpace !== -1 && nextSpace < targetChars + 35) {
-    return [text.slice(0, nextSpace).trimEnd(), text.slice(nextSpace + 1).trimStart()];
+  // 4. Fallback: split at any space before targetChars
+  if (lastSpace > 0) {
+    return [text.slice(0, lastSpace).trimEnd(), text.slice(lastSpace + 1).trimStart()];
   }
 
-  return [text, ''];
+  // 5. Hard split at targetChars if no spaces exist (e.g. unbroken string)
+  return [text.slice(0, targetChars).trimEnd(), text.slice(targetChars).trimStart()];
 }
 
 /**
@@ -119,8 +155,8 @@ function splitParagraphAtCapacity(text: string, targetChars: number): [string, s
  */
 export function splitMarkdownIntoPages(
   markdown: string, 
-  maxLinesPerPage: number = 32,
-  charsPerLine: number = 82
+  maxLinesPerPage: number = 34,
+  charsPerLine: number = 63
 ): string[] {
   if (!markdown || !markdown.trim()) {
     return [''];
@@ -142,18 +178,23 @@ export function splitMarkdownIntoPages(
     const lines = trimmedSection.split('\n');
     let currentPageLines: string[] = [];
     let currentWeight = 0;
-    let prevLine = '';
     let i = 0;
 
     while (i < lines.length) {
       const line = lines[i];
-      const weight = estimateLineWeight(line, prevLine, charsPerLine);
+      const prevLine = currentPageLines.length > 0 ? currentPageLines[currentPageLines.length - 1] : '';
+      const nextLine = i < lines.length - 1 ? lines[i + 1] : '';
+      const weight = estimateLineWeight(line, prevLine, nextLine, charsPerLine);
 
-      // Line fits on the current page
+      // Line fits completely on current page
       if (currentWeight + weight <= maxLinesPerPage) {
+        // Avoid starting a page with an empty line
+        if (currentPageLines.length === 0 && !line.trim()) {
+          i++;
+          continue;
+        }
         currentPageLines.push(line);
         currentWeight += weight;
-        prevLine = line;
         i++;
         continue;
       }
@@ -163,41 +204,61 @@ export function splitMarkdownIntoPages(
       const tr = line.trim();
       const isHeading = tr.startsWith('#');
       const isTable = tr.startsWith('|');
-      const renderedLen = getRenderedTextLength(line);
+      const isHr = /^[-*_]{3,}$/.test(tr);
 
-      // If page still has lines available, split the text to utilize the remaining lines
-      if (!isHeading && !isTable && remaining >= 1.0 && renderedLen > charsPerLine * 1.2) {
-        const targetChars = Math.floor(remaining * charsPerLine);
-        const [part1, part2] = splitParagraphAtCapacity(line, targetChars);
+      // Can we split this line to fill all remaining lines on this page?
+      if (!isHeading && !isTable && !isHr && remaining >= 1) {
+        const targetChars = remaining * charsPerLine;
+        const [part1, part2] = splitParagraphAtCapacity(line, targetChars, charsPerLine);
 
         if (part1 && part2 && part1.length > 0 && part2.length > 0) {
           currentPageLines.push(part1);
           finalPages.push(currentPageLines.join('\n').trim());
-          currentPageLines = [part2];
-          currentWeight = estimateLineWeight(part2, '', charsPerLine);
-          prevLine = part2;
+          currentPageLines = [];
+          currentWeight = 0;
+
+          // Preserve markdown formatting prefix if applicable (e.g. list, blockquote)
+          let prefix = '';
+          if (/^[-*]\s+/.test(line)) prefix = '- ';
+          else if (/^\d+\.\s+/.test(line)) prefix = '1. ';
+          else if (/^>\s+/.test(line)) prefix = '> ';
+
+          lines[i] = (prefix && !part2.startsWith(prefix) ? prefix : '') + part2;
+          // Do NOT increment i: re-evaluate part2 on the new page!
+          continue;
+        } else if (part1 && (!part2 || part2.length === 0)) {
+          currentPageLines.push(part1);
+          currentWeight += estimateLineWeight(part1, prevLine, nextLine, charsPerLine);
           i++;
           continue;
         }
       }
 
-      // Finalize current page and start a fresh page
+      // If cannot split or no remaining space, finalize current page
       if (currentPageLines.length > 0) {
-        finalPages.push(currentPageLines.join('\n').trim());
+        while (currentPageLines.length > 0 && !currentPageLines[currentPageLines.length - 1].trim()) {
+          currentPageLines.pop();
+        }
+        if (currentPageLines.length > 0) {
+          finalPages.push(currentPageLines.join('\n').trim());
+        }
         currentPageLines = [];
         currentWeight = 0;
-        prevLine = '';
+        // Do not increment i: line moves to next page
       } else {
+        // Single atomic element (e.g. huge table or long heading) at top of page
         currentPageLines.push(line);
         finalPages.push(currentPageLines.join('\n').trim());
         currentPageLines = [];
         currentWeight = 0;
-        prevLine = '';
         i++;
       }
     }
 
     if (currentPageLines.length > 0) {
+      while (currentPageLines.length > 0 && !currentPageLines[currentPageLines.length - 1].trim()) {
+        currentPageLines.pop();
+      }
       const pageText = currentPageLines.join('\n').trim();
       if (pageText) {
         finalPages.push(pageText);
@@ -213,7 +274,7 @@ export function splitMarkdownIntoPages(
  */
 export function parseMarkdownToHtml(markdownText: string): string {
   const preprocessed = preprocessMarkdown(markdownText);
-  const parsed = marked.parse(preprocessed, { async: false });
+  const parsed = marked.parse(preprocessed, { async: false, breaks: true, gfm: true });
   const rawHtml = typeof parsed === 'string' ? parsed : '';
 
   return DOMPurify.sanitize(rawHtml, {

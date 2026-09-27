@@ -226,6 +226,7 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
           {renderedPages.map(({ markdown: pageMarkdown, html: pageHtml, isVisualEmbed }, pageIndex) => {
             return (
               <div
+                className="sheet-container"
                 key={`paper-page-${pageIndex}-${pageMarkdown.slice(0, 32)}`}
                 style={{
                   display: 'flex',
