@@ -8,6 +8,8 @@
   --ink-color: #1e3a8a;
   --margin-left: 70px;
   --baseline-shift: 5px;
+  --handwriting-font-name: 'Caveat';
+  --handwriting-font-family: 'Caveat', cursive, sans-serif;
 }
 
 /* Base Paper Container */
@@ -378,24 +380,24 @@
 
 /* ==========================================================================
    Handwritten Mathematical Equations (KaTeX) Integration
-   Makes equations appear naturally written by hand instead of computerized
+   Strictly applies the user's chosen handwriting font & style to all math
    ========================================================================== */
 
 .handwriting-content .katex {
   color: inherit !important;
-  font-size: 1.02em;
+  font-size: 1.0em !important;
   text-rendering: auto;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
 .handwriting-content .katex .katex-html {
   color: inherit !important;
 }
 
-/* Base font inheritance for KaTeX tokens to render in the active handwriting font */
+/* Force all math characters, letters, numbers, operators, and symbols to use the active handwriting font */
 .handwriting-content .katex,
 .handwriting-content .katex .katex-html,
-.handwriting-content .katex .mathnormal,
+.handwriting-content .katex .base,
 .handwriting-content .katex .mord,
 .handwriting-content .katex .mbin,
 .handwriting-content .katex .mrel,
@@ -405,15 +407,21 @@
 .handwriting-content .katex .minner,
 .handwriting-content .katex .text,
 .handwriting-content .katex .mathrm,
-.handwriting-content .katex .mathbf {
-  font-family: inherit, 'KaTeX_Main', 'KaTeX_Math', 'KaTeX_AMS', cursive, sans-serif !important;
+.handwriting-content .katex .mathnormal,
+.handwriting-content .katex .mathit,
+.handwriting-content .katex .mathbf,
+.handwriting-content .katex .textbf,
+.handwriting-content .katex .amsrm,
+.handwriting-content .katex .delimsizing,
+.handwriting-content .katex span {
+  font-family: var(--handwriting-font-name, "Caveat"), 'KaTeX_Math', 'KaTeX_Main', 'KaTeX_AMS', 'KaTeX_Size1', 'KaTeX_Size2', 'KaTeX_Size3', 'KaTeX_Size4', cursive, sans-serif !important;
   color: inherit !important;
 }
 
-/* Math variables (e.g. N, k, x, y) written with handwritten cursive slant */
+/* Math variables (e.g. N, k, x, y, T) written with natural cursive handwriting slant */
 .handwriting-content .katex .mathnormal {
   font-style: italic !important;
-  font-family: inherit, 'KaTeX_Math', 'KaTeX_Main', cursive, sans-serif !important;
+  font-family: var(--handwriting-font-name, "Caveat"), 'KaTeX_Math', 'KaTeX_Main', cursive, sans-serif !important;
 }
 
 /* Numbers (0-9) and standard math text rendered cleanly in handwritten font */
@@ -421,29 +429,31 @@
 .handwriting-content .katex .text,
 .handwriting-content .katex .mathrm {
   font-style: normal !important;
-  font-family: inherit, 'KaTeX_Main', cursive, sans-serif !important;
+  font-family: var(--handwriting-font-name, "Caveat"), 'KaTeX_Main', cursive, sans-serif !important;
 }
 
 /* Bold variables and numbers in handwriting */
 .handwriting-content .katex .mathbf {
   font-weight: 700 !important;
   font-style: normal !important;
-  font-family: inherit, 'KaTeX_Main', cursive, sans-serif !important;
+  font-family: var(--handwriting-font-name, "Caveat"), 'KaTeX_Main', cursive, sans-serif !important;
 }
 
 /* Handwritten math operators and brackets */
+.handwriting-content .katex .mbin,
+.handwriting-content .katex .mrel,
 .handwriting-content .katex .mopen,
 .handwriting-content .katex .mclose,
 .handwriting-content .katex .mpunct {
-  font-family: inherit, 'KaTeX_Main', cursive, sans-serif !important;
+  font-family: var(--handwriting-font-name, "Caveat"), 'KaTeX_Main', 'KaTeX_Math', cursive, sans-serif !important;
 }
 
 /* Handwritten fraction line: looks like an organic pen stroke */
 .handwriting-content .katex .frac-line {
-  border-bottom-width: 1.5px !important;
+  border-bottom-width: 2px !important;
   border-bottom-style: solid !important;
   border-color: currentColor !important;
-  opacity: 0.85;
+  opacity: 0.9;
   border-radius: 1px;
 }
 
@@ -490,14 +500,21 @@
 }
 
 /* Multi-line or tall equation (fractions, matrices): occupies exactly 2 line heights */
-.handwriting-content .handwritten-math-display.math-block-tall {
-  height: calc(var(--line-height) * 2);
-  min-height: calc(var(--line-height) * 2);
+.handwriting-content .handwritten-math-display.math-block-tall,
+.handwriting-content .katex-display:has(.mfrac) {
+  height: calc(var(--line-height) * 2) !important;
+  min-height: calc(var(--line-height) * 2) !important;
   line-height: var(--line-height);
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   transform: translateY(var(--baseline-shift));
+}
+
+.handwriting-content li .handwritten-math-display,
+.handwriting-content li .katex-display {
+  transform: none !important;
+  margin: calc(var(--line-height) * 0.25) 0 !important;
 }
 
 .handwriting-content .handwritten-math-display > .katex-display {
@@ -566,15 +583,17 @@
   font-weight: 300;
   text-shadow: 0 0 0.2px currentColor;
 }
-.pen-fine .katex {
-  font-weight: 300;
+.pen-fine .katex,
+.pen-fine .katex span {
+  font-weight: 300 !important;
   text-shadow: 0 0 0.2px currentColor;
 }
 
 .pen-regular {
   font-weight: 400;
 }
-.pen-regular .katex {
+.pen-regular .katex,
+.pen-regular .katex span {
   font-weight: 400;
 }
 
@@ -582,7 +601,8 @@
   font-weight: 600;
   text-shadow: 0 0 0.5px currentColor;
 }
-.pen-medium .katex {
+.pen-medium .katex,
+.pen-medium .katex span {
   font-weight: 600;
   text-shadow: 0 0 0.5px currentColor;
 }
@@ -591,7 +611,8 @@
   font-weight: 700;
   text-shadow: 0 0 0.8px currentColor;
 }
-.pen-bold .katex {
+.pen-bold .katex,
+.pen-bold .katex span {
   font-weight: 700;
   text-shadow: 0 0 0.8px currentColor;
 }

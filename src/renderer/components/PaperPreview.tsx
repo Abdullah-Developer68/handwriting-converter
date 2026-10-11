@@ -297,6 +297,8 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                     ['--line-height' as any]: `${lineHeight}px`,
                     ['--baseline-shift' as any]: `${computedBaselineShift}px`,
                     ['--margin-width' as any]: `${settings?.marginLineWidth || 80}px`,
+                    ['--handwriting-font-name' as any]: settings?.font || 'Caveat',
+                    ['--handwriting-font-family' as any]: `"${settings?.font || 'Caveat'}", cursive, sans-serif`,
                   }}
                 >
                   {/* Red Margin Line */}

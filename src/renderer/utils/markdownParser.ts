@@ -30,8 +30,7 @@ export function preprocessMarkdown(markdown: string): string {
   // 3. Ensure unescaped % inside math is escaped to prevent LaTeX comment truncation
   processed = processed.replace(/(\$\$[\s\S]*?\$\$|\$[^$\n]+\$)/g, (math) => {
     return math
-      .replace(/([a-zA-Z0-9_'\\]+)\*(\{)/g, '$1_$2')
-      .replace(/([}])\*(\{)/g, '$1_$2')
+      .replace(/([a-zA-Z0-9_'\\]+|[}])\s*\*\s*(\{)/g, '$1_$2')
       .replace(/[–—]/g, '-')
       .replace(/(?<!\\)%/g, '\\%');
   });
