@@ -53,7 +53,7 @@ export interface HandwritingSettings {
   paperColor?: string;
   showMarginLine: boolean;
   marginLineWidth: number;
-  showHoles: boolean;
+  showHoles?: boolean;
   showHeader: boolean;
   headerDate?: string;
   headerSubject?: string;

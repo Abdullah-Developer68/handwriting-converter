@@ -302,14 +302,6 @@ export const PaperPreview: React.FC<PaperPreviewProps> = ({
                   {/* Red Margin Line */}
                   {settings?.showMarginLine && <div className="paper-margin-line" />}
 
-                  {/* Binder Punch Holes */}
-                  {settings?.showHoles && (
-                    <>
-                      <div className="paper-hole-punch top" />
-                      <div className="paper-hole-punch middle" />
-                      <div className="paper-hole-punch bottom" />
-                    </>
-                  )}
 
                   {/* Header (Date & Subject) */}
                   {settings?.showHeader && (Boolean(settings?.headerDate) || Boolean(settings?.headerSubject)) && (

@@ -328,16 +328,6 @@ export const StyleToolbar: React.FC<StyleToolbarProps> = ({ settings, onChange, 
           />
         </label>
 
-        {/* Binder holes toggle */}
-        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', cursor: 'pointer' }}>
-          <span style={{ fontSize: '12px', color: '#e4e4e7' }}>Binder Punch Holes</span>
-          <input
-            type="checkbox"
-            checked={settings.showHoles}
-            onChange={(e) => onChange({ showHoles: e.target.checked })}
-            style={{ accentColor: '#6366f1' }}
-          />
-        </label>
 
         {/* Header date/subject toggle */}
         <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: settings.showHeader ? '6px' : '10px', cursor: 'pointer' }}>

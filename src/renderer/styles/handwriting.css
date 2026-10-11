@@ -307,21 +307,81 @@
   border-collapse: collapse;
   margin: 0;
   margin-bottom: var(--line-height);
+  font-size: 0.88em;
+  letter-spacing: -0.01em;
+  word-break: break-word;
 }
 
 .handwriting-content th,
 .handwriting-content td {
   border: 1.5px solid currentColor;
-  padding: 0 10px;
-  height: var(--line-height);
-  line-height: var(--line-height);
+  padding: 4px 8px;
+  min-height: var(--line-height);
+  line-height: 1.35;
   box-sizing: border-box;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.handwriting-content th[align="center"],
+.handwriting-content td[align="center"] {
+  text-align: center;
+}
+
+.handwriting-content th[align="right"],
+.handwriting-content td[align="right"] {
+  text-align: right;
+}
+
+.handwriting-content th[align="left"],
+.handwriting-content td[align="left"] {
   text-align: left;
 }
 
 .handwriting-content th {
   font-weight: 600;
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.paper-sheet.paper-chalkboard .handwriting-content th {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Mathematical Equations & KaTeX Integration */
+.katex {
+  color: inherit !important;
+  font-size: 1.05em;
+  text-rendering: auto;
+}
+
+.katex .katex-html {
+  color: inherit !important;
+}
+
+p .katex,
+li .katex,
+td .katex,
+th .katex {
+  line-height: normal;
+}
+
+.katex-display {
+  margin: calc(var(--line-height) * 0.25) 0 !important;
+  line-height: normal;
+  text-align: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+.katex-display > .katex {
+  display: inline-block;
+  text-align: initial;
+  color: inherit !important;
+}
+
+.katex .text {
+  font-family: inherit !important;
 }
 
 /* Code blocks and inline code */

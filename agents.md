@@ -13,7 +13,8 @@
   - `headerDate: ''`
   - `headerSubject: ''`
   - `showPageNumbers: false`
-- The software must never print automatic numbering (such as `1 / 2`) or subject headers onto paper sheets unless explicitly toggled on and customized by the user in the styles settings.
+  - `showHoles: false`
+- The software must never print automatic numbering (such as `1 / 2`), subject headers, or binder punch holes onto paper sheets unless explicitly customized by the user.
 
 ### 3. Maximum Paper Line Utilization
 - Ruled notebook lines must be utilized fully from top to bottom before breaking to a new sheet.

@@ -141,7 +141,7 @@ export const DEFAULT_SETTINGS: HandwritingSettings = {
   baselineOffset: 0,
   showMarginLine: true,
   marginLineWidth: 70,
-  showHoles: true,
+  showHoles: false,
   showHeader: false,
   headerDate: '',
   headerSubject: '',

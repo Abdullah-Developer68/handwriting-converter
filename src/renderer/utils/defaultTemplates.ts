@@ -14,7 +14,7 @@ export const SAMPLE_TEMPLATES: SampleTemplate[] = [
       lineHeight: 32,
       jitter: 'subtle',
       showMarginLine: true,
-      showHoles: true,
+      showHoles: false,
     },
     markdown: `# Physics 201: Classical Mechanics & Energy
 
@@ -211,7 +211,7 @@ Add the active starter and remaining 25g water with salt. Pinch and fold until c
       lineHeight: 30,
       jitter: 'none',
       showMarginLine: true,
-      showHoles: true,
+      showHoles: false,
     },
     markdown: `# Microservices Event Bus Architecture
 
