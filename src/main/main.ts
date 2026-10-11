@@ -164,6 +164,7 @@ function runElectronApp() {
     });
   }
   const { app, BrowserWindow, ipcMain, dialog, shell } = electron;
+  app.setName('HC');
 
   // On Linux Wayland, disable Vulkan to prevent surface factory incompatibility warnings
   if (process.platform === 'linux') {
