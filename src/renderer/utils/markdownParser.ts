@@ -36,6 +36,10 @@ export function preprocessMarkdown(markdown: string): string {
       .replace(/(?<!\\)%/g, '\\%');
   });
 
+  // Ensure display math ($$...$$) is isolated with blank lines so marked produces clean blocks
+  processed = processed.replace(/([^\n])\n(\$\$[\s\S]*?\$\$)/g, '$1\n\n$2');
+  processed = processed.replace(/(\$\$[\s\S]*?\$\$)\n([^\n])/g, '$1\n\n$2');
+
   // Highlight syntax: ==yellow text== -> <mark class="highlight-yellow">text</mark>
   processed = processed.replace(/==([^=\n]+)==/g, '<mark class="highlight-yellow">$1</mark>');
 
@@ -168,7 +172,7 @@ function splitParagraphAtCapacity(text: string, targetChars: number, charsPerLin
   }
 
   // 2. Try punctuation / clause boundary (, ; : —) on the final line, outside math
-  const punctMatches = [...text.slice(0, targetChars).matchAll(/[,;:\u2014]\s+/g)];
+  const punctMatches = [...text.slice(0, targetChars).matchAll(/[,;:—]\s+/g)];
   for (let p = punctMatches.length - 1; p >= 0; p--) {
     const end = (punctMatches[p].index ?? 0) + punctMatches[p][0].length;
     if (end >= finalLineStart && !isInsideMath(text, end)) {
@@ -415,7 +419,17 @@ export function splitMarkdownIntoPages(
 export function parseMarkdownToHtml(markdownText: string): string {
   const preprocessed = preprocessMarkdown(markdownText);
   const parsed = marked.parse(preprocessed, { async: false, breaks: true, gfm: true });
-  const rawHtml = typeof parsed === 'string' ? parsed : '';
+  let rawHtml = typeof parsed === 'string' ? parsed : '';
+
+  // Transform display math blocks from awkward <p><span class="katex-display">...</span></p>
+  // into dedicated <div class="handwritten-math-display ..."> blocks strictly aligned to notebook ruled lines
+  rawHtml = rawHtml.replace(/<p>\s*(<span class="katex-display">[\s\S]*?<\/span>)\s*<\/p>/g, (_match, inner) => {
+    const isTall = inner.includes('class="mfrac"') || 
+                   inner.includes('class="mtable"') || 
+                   (inner.includes('class="vlist"') && (inner.includes('sum') || inner.includes('int')));
+    const sizeClass = isTall ? 'math-block-tall' : 'math-block-single';
+    return `<div class="handwritten-math-display ${sizeClass}">${inner}</div>`;
+  });
 
   const sanitizeFn = typeof DOMPurify?.sanitize === "function" 
     ? DOMPurify.sanitize 

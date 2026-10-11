@@ -138,14 +138,24 @@
 }
 
 /* Left Binder Hole Punches */
+.paper-holes {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  pointer-events: none;
+  z-index: 15;
+}
+
 .paper-hole-punch {
   position: absolute;
-  left: 20px;
+  left: 18px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background-color: #262626;
-  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0,0,0,0.2);
+  background-color: rgba(0, 0, 0, 0.85);
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.15);
   z-index: 15;
   pointer-events: none;
 }
@@ -166,7 +176,7 @@
 
 /* ==========================================================================
    Typography & Strict Line Grid Rhythm
-   Every element sits naturally on the notebook ruling!
+   Every element sits naturally on the notebook ruling without cutting lines!
    ========================================================================== */
 .paper-content,
 .handwriting-content {
@@ -204,6 +214,7 @@
   border-bottom: 2px solid currentColor;
   box-sizing: border-box;
   margin: 0;
+  margin-top: var(--line-height);
   margin-bottom: var(--line-height);
   display: flex;
   align-items: flex-end;
@@ -227,9 +238,12 @@
 .handwriting-content h3 {
   font-size: calc(var(--font-size) * 1.1);
   line-height: var(--line-height);
+  height: var(--line-height);
   font-weight: 600;
   margin: 0;
   margin-bottom: var(--line-height);
+  position: relative;
+  transform: translateY(var(--baseline-shift));
 }
 
 .handwriting-content hr {
@@ -251,10 +265,13 @@
   opacity: 0.9;
   font-style: italic;
   line-height: var(--line-height);
+  position: relative;
+  transform: translateY(var(--baseline-shift));
 }
 
 .handwriting-content blockquote p {
   margin-bottom: 0;
+  transform: none;
 }
 
 /* Lists and Checklist items */
@@ -263,6 +280,16 @@
   margin: 0;
   margin-bottom: var(--line-height);
   padding-left: 28px;
+  position: relative;
+  transform: translateY(var(--baseline-shift));
+}
+
+.handwriting-content ul ul,
+.handwriting-content ol ol,
+.handwriting-content ul ol,
+.handwriting-content ol ul {
+  margin-bottom: 0;
+  transform: none;
 }
 
 .handwriting-content li {
@@ -310,6 +337,8 @@
   font-size: 0.88em;
   letter-spacing: -0.01em;
   word-break: break-word;
+  position: relative;
+  transform: translateY(var(--baseline-shift));
 }
 
 .handwriting-content th,
@@ -347,41 +376,148 @@
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Mathematical Equations & KaTeX Integration */
-.katex {
+/* ==========================================================================
+   Handwritten Mathematical Equations (KaTeX) Integration
+   Makes equations appear naturally written by hand instead of computerized
+   ========================================================================== */
+
+.handwriting-content .katex {
   color: inherit !important;
-  font-size: 1.05em;
+  font-size: 1.02em;
   text-rendering: auto;
+  letter-spacing: 0.01em;
 }
 
-.katex .katex-html {
+.handwriting-content .katex .katex-html {
   color: inherit !important;
 }
 
-p .katex,
-li .katex,
-td .katex,
-th .katex {
-  line-height: normal;
+/* Base font inheritance for KaTeX tokens to render in the active handwriting font */
+.handwriting-content .katex,
+.handwriting-content .katex .katex-html,
+.handwriting-content .katex .mathnormal,
+.handwriting-content .katex .mord,
+.handwriting-content .katex .mbin,
+.handwriting-content .katex .mrel,
+.handwriting-content .katex .mopen,
+.handwriting-content .katex .mclose,
+.handwriting-content .katex .mpunct,
+.handwriting-content .katex .minner,
+.handwriting-content .katex .text,
+.handwriting-content .katex .mathrm,
+.handwriting-content .katex .mathbf {
+  font-family: inherit, 'KaTeX_Main', 'KaTeX_Math', 'KaTeX_AMS', cursive, sans-serif !important;
+  color: inherit !important;
 }
 
-.katex-display {
-  margin: calc(var(--line-height) * 0.25) 0 !important;
-  line-height: normal;
+/* Math variables (e.g. N, k, x, y) written with handwritten cursive slant */
+.handwriting-content .katex .mathnormal {
+  font-style: italic !important;
+  font-family: inherit, 'KaTeX_Math', 'KaTeX_Main', cursive, sans-serif !important;
+}
+
+/* Numbers (0-9) and standard math text rendered cleanly in handwritten font */
+.handwriting-content .katex .mord:not(.mathnormal):not(.delimsizing),
+.handwriting-content .katex .text,
+.handwriting-content .katex .mathrm {
+  font-style: normal !important;
+  font-family: inherit, 'KaTeX_Main', cursive, sans-serif !important;
+}
+
+/* Bold variables and numbers in handwriting */
+.handwriting-content .katex .mathbf {
+  font-weight: 700 !important;
+  font-style: normal !important;
+  font-family: inherit, 'KaTeX_Main', cursive, sans-serif !important;
+}
+
+/* Handwritten math operators and brackets */
+.handwriting-content .katex .mopen,
+.handwriting-content .katex .mclose,
+.handwriting-content .katex .mpunct {
+  font-family: inherit, 'KaTeX_Main', cursive, sans-serif !important;
+}
+
+/* Handwritten fraction line: looks like an organic pen stroke */
+.handwriting-content .katex .frac-line {
+  border-bottom-width: 1.5px !important;
+  border-bottom-style: solid !important;
+  border-color: currentColor !important;
+  opacity: 0.85;
+  border-radius: 1px;
+}
+
+/* Square root / radical lines and symbols in currentColor */
+.handwriting-content .katex svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Inline math baseline and vertical alignment */
+.handwriting-content p .katex,
+.handwriting-content li .katex,
+.handwriting-content td .katex,
+.handwriting-content th .katex {
+  line-height: inherit;
+  vertical-align: baseline;
+}
+
+/* Display Math Container: strictly aligned to ruled lines */
+.handwriting-content .handwritten-math-display,
+.handwriting-content .katex-display {
+  width: 100%;
+  margin: 0 !important;
+  margin-bottom: var(--line-height) !important;
+  padding: 0 !important;
+  box-sizing: border-box;
   text-align: center;
+  position: relative;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 0;
 }
 
-.katex-display > .katex {
+/* Single-line equation: occupies exactly 1 line height and rests just above ruled line */
+.handwriting-content .handwritten-math-display.math-block-single,
+.handwriting-content .katex-display {
+  height: var(--line-height);
+  min-height: var(--line-height);
+  line-height: var(--line-height);
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-end !important;
+  padding-bottom: 2px !important;
+  transform: translateY(var(--baseline-shift));
+}
+
+/* Multi-line or tall equation (fractions, matrices): occupies exactly 2 line heights */
+.handwriting-content .handwritten-math-display.math-block-tall {
+  height: calc(var(--line-height) * 2);
+  min-height: calc(var(--line-height) * 2);
+  line-height: var(--line-height);
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  transform: translateY(var(--baseline-shift));
+}
+
+.handwriting-content .handwritten-math-display > .katex-display {
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  height: 100%;
+  min-height: 100%;
+  line-height: inherit;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: inherit !important;
+  transform: none !important;
+}
+
+.handwriting-content .katex-display > .katex {
   display: inline-block;
-  text-align: initial;
+  line-height: inherit;
   color: inherit !important;
-}
-
-.katex .text {
-  font-family: inherit !important;
+  vertical-align: baseline;
 }
 
 /* Code blocks and inline code */
@@ -425,19 +561,37 @@ th .katex {
   border-radius: 2px;
 }
 
-/* Pen Thickness variations */
+/* Pen Thickness variations applied to KaTeX formulas and text */
 .pen-fine {
   font-weight: 300;
   text-shadow: 0 0 0.2px currentColor;
 }
+.pen-fine .katex {
+  font-weight: 300;
+  text-shadow: 0 0 0.2px currentColor;
+}
+
 .pen-regular {
   font-weight: 400;
 }
+.pen-regular .katex {
+  font-weight: 400;
+}
+
 .pen-medium {
   font-weight: 600;
   text-shadow: 0 0 0.5px currentColor;
 }
+.pen-medium .katex {
+  font-weight: 600;
+  text-shadow: 0 0 0.5px currentColor;
+}
+
 .pen-bold {
+  font-weight: 700;
+  text-shadow: 0 0 0.8px currentColor;
+}
+.pen-bold .katex {
   font-weight: 700;
   text-shadow: 0 0 0.8px currentColor;
 }
