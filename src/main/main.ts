@@ -2,6 +2,7 @@ import * as electron from 'electron';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 
 // Handle cases where Electron is launched with ELECTRON_RUN_AS_NODE (e.g., from certain IDE terminals)
 if (typeof electron === 'string' || !(electron as any).app) {
@@ -173,12 +174,20 @@ function runElectronApp() {
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
   function createWindow() {
+    const iconCandidates = [
+      path.join(__dirname, '../../../assets/icon.png'),
+      path.join(process.cwd(), 'assets/icon.png'),
+      path.join(__dirname, '../../assets/icon.png'),
+    ];
+    const resolvedIcon = iconCandidates.find((p) => fsSync.existsSync(p));
+
     mainWindow = new BrowserWindow({
       width: 1400,
       height: 900,
       minWidth: 1000,
       minHeight: 700,
-      title: 'ScribeCraft — Markdown to Handwritten Notes Converter',
+      title: 'HC — Handwriting Converter',
+      icon: resolvedIcon,
       backgroundColor: '#18181b',
       webPreferences: {
         preload: path.join(__dirname, '../preload/preload.js'),
